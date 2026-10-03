@@ -227,6 +227,46 @@ h1 em {
 .install { margin-top: 26px; padding: 20px 22px; }
 .install h3 { margin: 0 0 6px; font: 600 17px/1.4 var(--serif); }
 .install p { margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+.install p + p { margin-top: 10px; }
+
+/* ---------- reading mode: for humans / for agents ---------- */
+.lens {
+  display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; max-width: 100%;
+  background: rgba(255, 255, 255, .5); border: 1px dashed var(--pencil);
+}
+.lens button {
+  border: 0; background: none; cursor: pointer; border-radius: 999px;
+  height: 28px; padding: 0 12px; font-size: 12.5px; color: var(--ink-faint); white-space: nowrap;
+  transition: background .3s var(--ease), color .3s var(--ease);
+}
+.lens button[aria-pressed="true"] { color: var(--violet); background: linear-gradient(120deg, rgba(143, 123, 214, .2), rgba(229, 155, 181, .26)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8); }
+.lens-all { display: flex; width: max-content; margin: 16px auto 0; }
+.lens-all button { height: 32px; padding: 0 16px; font-size: 13.5px; }
+.front .lens { align-self: flex-start; margin-top: 14px; }
+.back .lens { margin-bottom: 14px; }
+
+.card[data-lens="human"] .for-machine, .card[data-lens="machine"] .for-human,
+.card:not([data-lens]) .for-human { display: none; }
+
+.mode { margin: 0; font: 600 14px/1.5 var(--serif); color: var(--ink); }
+.mode::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: .08em; }
+.mode-diy::before  { background: #9fd3b5; box-shadow: 0 0 0 3px rgba(159, 211, 181, .25); }
+.mode-half::before { background: var(--peach); box-shadow: 0 0 0 3px rgba(255, 210, 176, .35); }
+.mode-crew::before { background: #a593e0; box-shadow: 0 0 0 3px rgba(165, 147, 224, .25); }
+.tips { list-style: none; counter-reset: t; margin: 10px 0 0; padding: 0; }
+.tips li { counter-increment: t; position: relative; padding-left: 28px; margin-top: 9px; font-size: 13.5px; line-height: 1.65; color: var(--ink-soft); }
+.tips li::before {
+  content: counter(t); position: absolute; left: 0; top: .15em; width: 19px; height: 19px; border-radius: 50%;
+  display: grid; place-items: center; font: 600 11px/1 var(--serif); color: var(--violet);
+  border: 1px dashed var(--pencil); background: rgba(255, 255, 255, .6);
+}
+.brief { margin-top: 14px; padding: 10px 14px; border-radius: 16px; background: rgba(255, 255, 255, .55); border: 1px dashed var(--pencil); }
+.brief summary { cursor: pointer; font: 600 13.5px/1.5 var(--serif); color: var(--violet); }
+.brief-text { margin: 8px 0 0; white-space: pre-line; overflow-wrap: anywhere; font-size: 12.5px; line-height: 1.7; color: var(--ink-soft); }
+.copy {
+  margin-top: 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, .8); border-radius: 999px;
+  height: 30px; padding: 0 14px; font-size: 12.5px; color: var(--violet); cursor: pointer;
+}
 
 /* ---------- contribute ---------- */
 .three-q { list-style: none; counter-reset: q; margin: 26px 0 0; padding: 0; display: grid; gap: 12px; }

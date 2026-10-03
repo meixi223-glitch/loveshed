@@ -150,7 +150,11 @@
   <!-- ============ SKILL CARDS ============ -->
   <section id="skills" class="skills" aria-labelledby="skills-h">
     <h2 id="skills-h" class="sec-h"><span class="zh">工艺卡</span><span class="en">The craft cards</span></h2>
-    <p class="sec-sub"><span class="zh">正面是你会说出口的那句话；翻过来，是它的战绩。</span><span class="en">The front is what you'd actually say. Flip it for the record.</span></p>
+    <p class="sec-sub"><span class="zh">正面是你会说出口的那句话。同一份工艺两种读法：「给机装」翻过来是战绩，交给施工 agent 装；「给人看」翻过来是人话步骤，没有施工队也能自己来。</span><span class="en">The front is what you'd actually say. One craft, two ways to read it: “For agents” flips to the battle record, for your builder agent to install; “For humans” flips to plain steps you can follow without a crew.</span></p>
+    <div id="lens-all" class="lens lens-all" role="group" aria-label="读法 / reading mode">
+      <button type="button" data-lens-all="human"><span class="zh">给人看</span><span class="en">For humans</span></button>
+      <button type="button" data-lens-all="machine"><span class="zh">给机装</span><span class="en">For agents</span></button>
+    </div>
     <div class="chips" role="group" aria-label="filter">
       <button type="button" class="chip" data-route="all"><span class="zh">全部</span><span class="en">All</span></button>
       <button type="button" class="chip" data-route="move"><span class="zh">搬家</span><span class="en">Moving</span></button>
@@ -164,6 +168,7 @@
     <div class="install reveal">
       <h3><span class="zh">怎么装</span><span class="en">How to install</span></h3>
       <p><span class="zh">把需要的 skill 目录复制进你的施工 agent 能读到的 skills 目录（比如 Claude Code 的 <code>~/.claude/skills/</code>），或者直接把 <code>SKILL.md</code> 贴给它。里面的路径、服务名都是占位符，agent 会照你家的实际情况替换。</span><span class="en">Copy the skill folders you need into wherever your builder agent loads skills (e.g. <code>~/.claude/skills/</code> for Claude Code), or just paste <code>SKILL.md</code> to it. Paths and service names are placeholders; the agent adapts them to your home.</span></p>
+      <p><span class="zh">还没有施工 agent？每个目录里都有一份 <code>TIPS.md</code>：同一份工艺的人读版，不写代码、复制粘贴就能照做。确实离不开施工队的，也会给你一段可以直接发给 Claude Code / Codex 的话。</span><span class="en">No builder agent yet? Every folder has a <code>TIPS.md</code>: the human version of the same craft, no code, just copy and paste. Where a crew is truly needed, it gives you a brief you can send straight to Claude Code / Codex.</span></p>
     </div>
   </section>
 
@@ -186,7 +191,7 @@
 
 <footer class="foot">
   <p>MIT · built by yumei &amp; Jin</p>
-  <p class="foot-sub"><span class="zh">数据截至 2026-10-03，以仓库内 SKILL.md 与 EVALUATION.md 为准。</span><span class="en">Data as of 2026-10-03; SKILL.md and EVALUATION.md in the repo are the source of truth.</span></p>
+  <p class="foot-sub"><span class="zh">数据截至 2026-10-03，以仓库内 SKILL.md、EVALUATION.md 与 TIPS.md 为准。</span><span class="en">Data as of 2026-10-03; SKILL.md, EVALUATION.md and TIPS.md in the repo are the source of truth.</span></p>
 </footer>
 </body>
 </html>
