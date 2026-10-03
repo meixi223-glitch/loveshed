@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>掌柜工作台 · loveshed</title>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#f5effb">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css">
+<!-- The keeper's desk. No secrets in this file: everything sensitive comes from the password-gated API.
+     Not linked from any page, not in the service worker cache (sw.js skips keeper.html). -->
+<style>
+  .kp { max-width: 760px; margin: 0 auto; padding: 18px 16px 90px; }
+  .kp [hidden] { display: none !important; }
+  .kp section { padding: 0; }
+  .kp-h { margin: 6px 0 2px; font: 600 24px/1.3 var(--serif); text-align: center; }
+  .kp-sub { margin: 0 0 18px; text-align: center; color: var(--ink-soft); font-size: 14px; }
+  .glass { background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(124, 104, 196, .1); }
+  .top .kp-out { margin-left: 8px; border: 1px solid var(--line); background: var(--glass-strong); border-radius: 999px; height: 32px; padding: 0 12px; font-size: 13px; cursor: pointer; }
+  .top .kp-title { margin-left: auto; font: 600 14px/1 var(--serif); color: var(--ink-soft); white-space: nowrap; }
+
+  /* gate */
+  .gate { max-width: 360px; margin: 12vh auto 0; padding: 28px 22px 24px; text-align: center; }
+  .gate h1 { margin: 0 0 6px; font: 600 22px/1.4 var(--serif); }
+  .gate p { margin: 0 0 16px; color: var(--ink-soft); font-size: 14px; }
+  .gate input { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 16px; border: 1.5px dashed var(--pencil); background: rgba(255, 255, 255, .7); color: var(--ink); }
+  .gate input:focus { outline: none; border-style: solid; border-color: var(--violet); }
+  .gate .btn { width: 100%; margin-top: 12px; border: 0; cursor: pointer; justify-content: center; }
+  .gate .err { min-height: 1.5em; margin: 10px 0 0; color: #b4547a; font-size: 14px; }
+
+  /* stats */
+  .kp-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+  @media (min-width: 640px) { .kp-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .kp-stat { padding: 10px 12px; border-radius: 18px; background: rgba(255, 255, 255, .55); min-width: 0; }
+  .kp-stat .lbl { font-size: 12.5px; color: var(--ink-soft); line-height: 1.4; }
+  .kp-stat .big { font: 600 26px/1.15 var(--serif); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kp-stat .small { font-size: 12px; color: var(--ink-faint); line-height: 1.4; }
+  .kp-stat.hot { background: linear-gradient(135deg, rgba(143, 123, 214, .22), rgba(229, 155, 181, .22)); }
+  .kp-stat.hot .big { color: var(--violet); }
+  .kp-stat.wall { grid-column: 1 / -1; }
+  @media (min-width: 640px) { .kp-stat.wall { grid-column: auto; } }
+  .publine { margin: 8px 4px 0; font-size: 12.5px; color: var(--ink-faint); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .publine .warn { color: #b4547a; }
+  .publine button { margin-left: auto; border: 1px solid var(--line); background: var(--glass-strong); border-radius: 999px; padding: 3px 12px; font-size: 12.5px; cursor: pointer; }
+
+  /* sections */
+  .sec { margin-top: 26px; }
+  .sec > h2 { display: flex; align-items: baseline; gap: 8px; margin: 0 4px 10px; font: 600 18px/1.4 var(--serif); }
+  .sec > h2 small { font: 500 13px/1 var(--sans); color: var(--ink-faint); }
+  .empty { padding: 26px 18px; text-align: center; color: var(--ink-soft); font-size: 15px; }
+  .empty .moon { display: block; font-size: 26px; margin-bottom: 4px; opacity: .7; }
+
+  /* cards */
+  .kp-cards { display: grid; gap: 12px; }
+  .kp-card { padding: 14px 16px 12px; min-width: 0; transition: opacity .35s var(--ease), transform .35s var(--ease), max-height .4s var(--ease), margin .4s var(--ease), padding .4s var(--ease); overflow: hidden; }
+  .kp-card.gone { opacity: 0; transform: translateX(28px) scale(.98); }
+  .card-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; background: var(--violet); white-space: nowrap; }
+  .badge.t-question { background: #8f7bd6; } .badge.t-answer { background: #6aa6c8; }
+  .badge.t-tip { background: #d98aa6; } .badge.t-amend { background: #d9a36a; } .badge.t-report { background: #c76a8a; }
+  .kp-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; background: rgba(255, 255, 255, .7); border: 1px solid var(--line); color: var(--ink-soft); white-space: nowrap; }
+  .kp-pill.v-pass { color: #3f8a64; } .kp-pill.v-warn { color: #b9822c; } .kp-pill.v-reject, .kp-pill.v-error, .kp-pill.risk { color: #b4547a; }
+  .kp-card h3 { margin: 4px 0 4px; font: 600 16.5px/1.45 var(--serif); overflow-wrap: anywhere; }
+  .kp-card .body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font-size: 15px; line-height: 1.7; }
+  .kp-card .ctx { margin: 0 0 6px; font-size: 13px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .kp-card .extra { margin: 8px 0 0; font-size: 13.5px; color: var(--ink-soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .kp-card .kp-links { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .kp-card .kp-links li { overflow-wrap: anywhere; }
+  .kp-card .kp-links .kp-pill { white-space: normal; height: auto; margin: 2px 0 0 4px; overflow-wrap: anywhere; }
+  .kp-card .kp-meta { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-faint); overflow-wrap: anywhere; }
+  .kp-card .why { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, .5); font-size: 13px; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .quote { margin: 8px 0 0; padding: 10px 12px; border-left: 3px solid var(--rose); border-radius: 4px 14px 14px 4px; background: rgba(255, 255, 255, .55); }
+  .quote .body { font-size: 14.5px; }
+  .acts { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .acts button { flex: 1 1 0; min-width: 0; height: 40px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .72); font-size: 15px; cursor: pointer; white-space: nowrap; }
+  .acts button.ok { flex: 1.6 1 0; border: 0; color: #fff; background: linear-gradient(120deg, #8f7bd6, #e59bb5); box-shadow: 0 6px 18px rgba(143, 123, 214, .3); font-weight: 600; }
+  .acts button.danger { color: #b4547a; }
+  .acts button.danger.armed { color: #fff; background: #c76a8a; border-color: #c76a8a; }
+  .acts button[disabled] { opacity: .5; cursor: wait; }
+
+  /* folded lists */
+  details.fold { margin-top: 26px; padding: 4px 16px; }
+  details.fold summary { cursor: pointer; padding: 10px 0; font: 600 16px/1.4 var(--serif); }
+  details.fold summary small { font: 500 13px/1 var(--sans); color: var(--ink-faint); margin-left: 6px; }
+  .rows { list-style: none; margin: 0 0 10px; padding: 0; font-size: 13.5px; }
+  .rows li { padding: 8px 0; border-top: 1px dashed rgba(124, 104, 196, .2); overflow-wrap: anywhere; }
+  .rows .r1 { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .rows .when { color: var(--ink-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .rows .ex { color: var(--ink-soft); }
+  .rows .acts { margin-top: 6px; }
+  .rows .acts button { flex: 0 0 auto; height: 32px; padding: 0 14px; font-size: 13.5px; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); opacity: 0; z-index: 30; max-width: calc(100vw - 32px);
+           padding: 10px 18px; border-radius: 999px; background: rgba(63, 58, 88, .92); color: #fff; font-size: 14px; transition: opacity .25s, transform .25s; pointer-events: none; text-align: center; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .toast.bad { background: rgba(180, 84, 122, .95); }
+</style>
+</head>
+<body data-page="keeper">
+<div class="sky" aria-hidden="true"><i class="haze h1"></i><i class="haze h2"></i><i class="haze h3"></i></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="brand" href="./" aria-label="loveshed">
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M5 15 16 6l11 9M8 13v12h16V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="13" y="17" width="6" height="5" rx="1" fill="currentColor" opacity=".55"/></svg>
+    loveshed
+  </a>
+  <span class="kp-title"><span class="zh">掌柜工作台</span><span class="en">Keeper's desk</span></span>
+  <button id="lang-toggle" class="lang" type="button"><span class="zh">EN</span><span class="en">中</span></button>
+  <button id="logout" class="kp-out" type="button" hidden><span class="zh">退出</span><span class="en">Log out</span></button>
+</header>
+
+<main class="kp">
+  <form id="gate" class="gate glass" hidden autocomplete="off">
+    <h1><span class="zh">掌柜请进</span><span class="en">Keeper only</span></h1>
+    <p><span class="zh">输入掌柜口令。这台设备记住后，下次就不用再输啦。</span><span class="en">Enter the keeper password. This device will remember it.</span></p>
+    <input id="pw" type="password" autocomplete="current-password" aria-label="password" required>
+    <button class="btn primary" type="submit"><span class="zh">进门</span><span class="en">Come in</span></button>
+    <p id="gate-err" class="err" role="alert"></p>
+  </form>
+
+  <div id="desk" hidden>
+    <h1 class="kp-h"><span class="zh">今天的小屋</span><span class="en">The shed today</span></h1>
+    <p class="kp-sub" id="asof"></p>
+
+    <section class="glass" aria-label="stats">
+      <div class="kp-stats" id="stats"></div>
+    </section>
+    <p class="publine" id="publine"></p>
+
+    <section class="sec" aria-labelledby="q-h">
+      <h2 id="q-h"><span class="zh">待审队列</span><span class="en">Waiting for you</span> <small id="q-n"></small></h2>
+      <div class="kp-cards" id="queue"></div>
+    </section>
+
+    <section class="sec" aria-labelledby="r-h">
+      <h2 id="r-h"><span class="zh">举报</span><span class="en">Reports</span> <small id="r-n"></small></h2>
+      <div class="kp-cards" id="reports"></div>
+    </section>
+
+    <details class="fold glass" id="del-fold">
+      <summary><span class="zh">删除请求</span><span class="en">Delete requests</span><small id="d-n"></small></summary>
+      <ul class="rows" id="deletes"></ul>
+    </details>
+
+    <details class="fold glass">
+      <summary><span class="zh">近期已处理</span><span class="en">Recently handled</span><small id="h-n"></small></summary>
+      <ul class="rows" id="history"></ul>
+    </details>
+  </div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var API = "https://claude-api.ykumi.com/loveshed/keeper/";
+  // local testing only: ?api=http://127.0.0.1:port/api/keeper/
+  if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
+    var m = /[?&]api=([^&]+)/.exec(location.search);
+    if (m) API = decodeURIComponent(m[1]);
+  }
+  var TOKEN_KEY = "loveshed-keeper-token";
+  var root = document.documentElement;
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- language (same key as the rest of the site) ---------- */
+  function setLang(l) {
+    root.setAttribute("data-lang", l);
+    root.setAttribute("lang", l === "zh" ? "zh-CN" : "en");
+    try { localStorage.setItem("loveshed-lang", l); } catch (e) {}
+    $("lang-toggle").setAttribute("aria-label", l === "zh" ? "Switch to English" : "切换到中文");
+  }
+  var savedLang = null;
+  try { savedLang = localStorage.getItem("loveshed-lang"); } catch (e) {}
+  setLang(savedLang || (/^zh/i.test(navigator.language || "") ? "zh" : "en"));
+  var last = null;  // last overview, re-rendered when the language flips (some lines are built per language)
+  $("lang-toggle").addEventListener("click", function () {
+    setLang(root.getAttribute("data-lang") === "zh" ? "en" : "zh");
+    if (last && !$("desk").hidden) render(last);
+  });
+  function zh() { return root.getAttribute("data-lang") === "zh"; }
+
+  /* ---------- tiny DOM helpers (text only, never innerHTML with data) ---------- */
+  function el(tag, cls, kids) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    (kids || []).forEach(function (k) { if (k != null) n.appendChild(typeof k === "string" ? document.createTextNode(k) : k); });
+    return n;
+  }
+  function bi(z, e) {
+    var f = document.createDocumentFragment();
+    f.appendChild(el("span", "zh", [z]));
+    f.appendChild(el("span", "en", [e]));
+    return f;
+  }
+  function biEl(tag, cls, z, e) { var n = el(tag, cls); n.appendChild(bi(z, e)); return n; }
+  function when(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d)) return iso;
+    var p = function (x) { return (x < 10 ? "0" : "") + x; };
+    return p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  var toastTimer;
+  function toast(z, e, bad) {
+    var t = $("toast");
+    t.textContent = zh() ? z : e;
+    t.className = "toast on" + (bad ? " bad" : "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = "toast" + (bad ? " bad" : ""); }, 2600);
+  }
+
+  /* ---------- auth ---------- */
+  function token() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
+  function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+
+  function call(method, path, body) {
+    var opt = { method: method, cache: "no-store", headers: { "Authorization": "Bearer " + token() } };
+    if (body) { opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+    return fetch(API + path, opt).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { j._status = r.status; return j; });
+    });
+  }
+
+  function showGate(msgZ, msgE) {
+    $("desk").hidden = true; $("logout").hidden = true; $("gate").hidden = false;
+    $("gate-err").textContent = msgZ ? (zh() ? msgZ : msgE) : "";
+    setTimeout(function () { $("pw").focus(); }, 50);
+  }
+  function waitText(sec) {
+    var min = Math.ceil(sec / 60);
+    return ["试错太多次啦，" + min + " 分钟后再来吧", "Too many tries — come back in " + min + " min"];
+  }
+
+  $("gate").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var b = $("gate").querySelector("button");
+    b.disabled = true;
+    $("gate-err").textContent = "";
+    fetch(API + "login", { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: $("pw").value }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { j._status = r.status; return j; }); })
+      .then(function (j) {
+        if (j.ok && j.token) { setToken(j.token); $("pw").value = ""; load(); return; }
+        if (j._status === 429) { var w = waitText(j.retry_after || 900); showGate(w[0], w[1]); return; }
+        showGate("口令不对哦，再想想", "That's not the password");
+      })
+      .catch(function () { showGate("连不上服务器，稍后再试", "Can't reach the server, try again later"); })
+      .then(function () { b.disabled = false; });
+  });
+
+  $("logout").addEventListener("click", function () {
+    call("POST", "logout", {}).catch(function () {});
+    setToken("");
+    showGate();
+  });
+
+  /* ---------- desk ---------- */
+  var TYPE = { question: ["提问", "Question"], answer: ["回答", "Answer"], tip: ["分享", "Tip"], amend: ["纠错", "Fix"], report: ["举报", "Report"] };
+  var VERDICT = { pass: ["AI 觉得没问题", "AI: pass"], warn: ["AI 想让你看一眼", "AI: have a look"], reject: ["AI 建议拒绝", "AI: reject"], error: ["AI 预审失败", "AI: failed"] };
+
+  function load() {
+    if (!token()) return showGate();
+    call("GET", "overview").then(function (j) {
+      if (j._status === 401) { setToken(""); return showGate(); }
+      if (j._status === 429) { var w = waitText(j.retry_after || 900); return showGate(w[0], w[1]); }
+      if (!j.ok) return toast("加载失败了，下拉刷新试试", "Failed to load", true);
+      $("gate").hidden = true; $("desk").hidden = false; $("logout").hidden = false;
+      render(j);
+    }).catch(function () { toast("连不上服务器", "Can't reach the server", true); });
+  }
+
+  function statTile(cls, z, e, big, smallZ, smallE) {
+    var t = el("div", "kp-stat " + (cls || ""));
+    t.appendChild(biEl("div", "lbl", z, e));
+    t.appendChild(el("div", "big", [String(big)]));
+    if (smallZ) t.appendChild(biEl("div", "small", smallZ, smallE));
+    return t;
+  }
+
+  function render(j) {
+    last = j;
+    var s = j.stats;
+    $("asof").textContent = (zh() ? "截至 " : "As of ") + when(j.now);
+    var box = $("stats"); box.textContent = "";
+    box.appendChild(statTile("hot", "待审", "To review", s.pending, "另有举报 " + s.reports, "+ " + s.reports + " reports"));
+    box.appendChild(statTile("", "机审自动上墙", "Auto-published", s.auto.today, "今日 · 累计 " + s.auto.total, "today · " + s.auto.total + " total"));
+    box.appendChild(statTile("", "人工通过", "You approved", s.manual.today, "今日 · 累计 " + s.manual.total, "today · " + s.manual.total + " total"));
+    box.appendChild(statTile("", "拒绝", "Rejected", s.rejected.today, "今日 · 累计 " + s.rejected.total + "（机拒 " + s.rejected.auto + "）", "today · " + s.rejected.total + " total (" + s.rejected.auto + " by AI)"));
+    box.appendChild(statTile("wall", "墙上", "On the wall", s.wall.questions + " / " + s.wall.answers, "问题 / 回答", "questions / answers"));
+
+    var pl = $("publine"); pl.textContent = "";
+    if (j.publish.running) pl.appendChild(biEl("span", "", "正在同步上墙…（约 1 分钟后网站可见）", "Publishing… (live in about a minute)"));
+    else if (j.publish.last_error) pl.appendChild(el("span", "warn", [(zh() ? "上次上墙失败：" : "Last publish failed: ") + j.publish.last_error]));
+    else if (j.publish.last_ok) pl.appendChild(el("span", "", [(zh() ? "上次上墙 " : "Last published ") + when(j.publish.last_ok)]));
+    var rb = biEl("button", "", "刷新", "Refresh"); rb.type = "button"; rb.addEventListener("click", load);
+    pl.appendChild(rb);
+
+    renderQueue(j.queue);
+    renderReports(j.reports);
+    renderDeletes(j.deletes);
+    renderHistory(j.history);
+    if (j.publish.running) setTimeout(load, 8000);
+  }
+
+  function emptyNote(box) {
+    var e = el("div", "empty glass");
+    e.appendChild(el("span", "moon", ["☾"]));
+    e.appendChild(bi("暂时没有要处理的～", "Nothing to handle right now ~"));
+    box.appendChild(e);
+  }
+
+  function counter(id, n) { $(id).textContent = n ? String(n) : ""; }
+
+  function card(kind) {
+    var c = el("article", "kp-card glass");
+    var top = el("div", "card-top");
+    var t = TYPE[kind] || [kind, kind];
+    top.appendChild(biEl("span", "badge t-" + kind, t[0], t[1]));
+    c.appendChild(top);
+    return c;
+  }
+
+  function renderQueue(items) {
+    var box = $("queue"); box.textContent = "";
+    counter("q-n", items.length);
+    if (!items.length) return emptyNote(box);
+    items.forEach(function (it) {
+      var c = card(it.type), top = c.firstChild;
+      var pc = it.precheck;
+      if (pc) { var v = VERDICT[pc.verdict] || [pc.verdict, pc.verdict]; top.appendChild(biEl("span", "kp-pill v-" + pc.verdict, v[0], v[1])); }
+      else top.appendChild(biEl("span", "kp-pill", "AI 还没看", "AI pending"));
+      ((pc && pc.signals) || it.signals || []).forEach(function (sg) { top.appendChild(el("span", "kp-pill risk", [sg])); });
+      if (it.skill) top.appendChild(el("span", "kp-pill", [it.skill]));
+      if (it.type === "answer" && it.question_id) {
+        c.appendChild(el("p", "ctx", [(zh() ? "回答的是：" : "Answering: ") + (it.question_title || it.question_id) + (it.reply_to ? (zh() ? "（楼中楼）" : " (reply)") : "")]));
+      }
+      if (it.title) c.appendChild(el("h3", "", [it.title]));
+      c.appendChild(el("p", "body", [it.body || ""]));
+      if (it.pitfalls) c.appendChild(el("p", "extra", [(zh() ? "踩过的坑：" : "Pitfalls: ") + it.pitfalls]));
+      if (it.duration) c.appendChild(el("p", "extra", [(zh() ? "实装时长：" : "Running for: ") + it.duration]));
+      if (it.media_links && it.media_links.length) {
+        var ul = el("ul", "kp-links");
+        it.media_links.forEach(function (l) {
+          var li = el("li", "", ["🔗 " + l.url]);
+          if (l.risks.length) li.appendChild(el("span", "kp-pill risk", [l.risks.join(",")]));
+          ul.appendChild(li);
+        });
+        c.appendChild(ul);
+      }
+      if (pc && pc.reason) c.appendChild(el("p", "why", ["AI：" + pc.reason]));
+      var who = it.nickname || (zh() ? "匿名" : "anonymous");
+      var meta = who + " · " + when(it.received_at);
+      if (it.contact) meta += " · " + (zh() ? "联系方式" : "contact") + "（" + (it.contact_visibility === "public" ? (zh() ? "公开" : "public") : (zh() ? "仅掌柜" : "private")) + "）：" + it.contact;
+      c.appendChild(el("p", "kp-meta", [meta]));
+      var acts = el("div", "acts");
+      acts.appendChild(button("ok", "通过 ✓", "Approve ✓", function (b) { act(c, b, { op: "accept", id: it.id }, it.type); }));
+      acts.appendChild(button("", "拒绝", "Reject", function (b) { act(c, b, { op: "reject", id: it.id }, it.type); }));
+      acts.appendChild(button("", "垃圾", "Spam", function (b) { act(c, b, { op: "spam", id: it.id }, it.type); }));
+      c.appendChild(acts);
+      box.appendChild(c);
+    });
+  }
+
+  function renderReports(items) {
+    var box = $("reports"); box.textContent = "";
+    counter("r-n", items.length);
+    if (!items.length) return emptyNote(box);
+    items.forEach(function (r) {
+      var c = card("report"), top = c.firstChild, t = r.target || {};
+      var st = { accepted: ["还在墙上", "live"], live: ["墙上（手写条目）", "live (hand-written)"], deleted: ["已删除", "deleted"], missing: ["找不到了", "not found"] }[t.status] || [t.status || "?", t.status || "?"];
+      top.appendChild(biEl("span", "kp-pill", st[0], st[1]));
+      c.appendChild(el("p", "ctx", [(zh() ? "举报原因：" : "Reason: ") + (r.reason || "")]));
+      var q = el("div", "quote");
+      var tt = TYPE[t.type] || ["内容", "Item"];
+      q.appendChild(el("p", "ctx", [(zh() ? "被举报的" + tt[0] : "Reported " + tt[1].toLowerCase()) + (t.question_title ? (zh() ? " · 在「" + t.question_title + "」下" : " · under “" + t.question_title + "”") : "")]));
+      if (t.title) q.appendChild(el("h3", "", [t.title]));
+      q.appendChild(el("p", "body", [t.body || (zh() ? "（内容已不在）" : "(gone)")]));
+      if (t.nickname || t.received_at) q.appendChild(el("p", "kp-meta", [(t.nickname || (zh() ? "匿名" : "anonymous")) + (t.received_at ? " · " + when(t.received_at) : "")]));
+      c.appendChild(q);
+      c.appendChild(el("p", "kp-meta", [(zh() ? "举报于 " : "Reported ") + when(r.received_at) + " · " + r.item_id]));
+      var acts = el("div", "acts");
+      acts.appendChild(button("", "忽略", "Ignore", function (b) { act(c, b, { op: "ignore", id: r.id }, "report"); }));
+      if (t.status === "accepted") {
+        acts.appendChild(armed("删除", "Delete", "再点一次确认删除", "Tap again to delete", function (b) { act(c, b, { op: "remove", id: r.id }, "report"); }));
+      } else if (t.status === "live") {
+        acts.appendChild(biEl("span", "kp-pill", "手写条目请到仓库里改", "Edit hand-written items in the repo"));
+      }
+      c.appendChild(acts);
+      box.appendChild(c);
+    });
+  }
+
+  function renderDeletes(d) {
+    var ul = $("deletes"); ul.textContent = "";
+    var n = d.waiting.length + d.log.length;
+    $("d-n").textContent = n ? String(n) : "";
+    if (!n) { ul.appendChild(el("li", "ex", [zh() ? "暂时没有删除请求～" : "No delete requests yet ~"])); return; }
+    d.waiting.forEach(function (w) {
+      var li = el("li"); var r1 = el("div", "r1");
+      r1.appendChild(el("span", "when", [when(w.at)])); r1.appendChild(biEl("span", "kp-pill v-warn", "排队中", "queued")); r1.appendChild(el("span", "ex", [w.item_id]));
+      li.appendChild(r1); ul.appendChild(li);
+    });
+    var RES = { deleted: ["已删除", "deleted", "v-pass"], refused: ["口令不符，未删", "token mismatch", "v-warn"], not_live: ["本来就不在墙上", "not live", ""], unknown_item: ["找不到条目", "unknown item", ""] };
+    var BY = { author: ["作者本人", "author"], thread_owner: ["楼主", "thread owner"], keeper: ["掌柜", "keeper"] };
+    d.log.forEach(function (x) {
+      var li = el("li"); var r1 = el("div", "r1");
+      var res = RES[x.result] || [x.result, x.result, ""];
+      r1.appendChild(el("span", "when", [when(x.at)]));
+      r1.appendChild(biEl("span", "kp-pill " + res[2], res[0], res[1]));
+      if (x.by) { var b = BY[x.by] || [x.by, x.by]; r1.appendChild(biEl("span", "kp-pill", b[0], b[1])); }
+      li.appendChild(r1);
+      var t = x.target || {};
+      li.appendChild(el("div", "ex", [(t.title || t.body || x.item_id).split("\n")[0].slice(0, 80)]));
+      if (x.result === "refused" && t.status === "accepted") {
+        var acts = el("div", "acts");
+        acts.appendChild(armed("执行删除", "Delete it", "再点一次确认", "Tap again", function (bt) {
+          bt.disabled = true;
+          call("POST", "act", { op: "takedown", item_id: x.item_id }).then(function (j) { done(j, null, bt); }).catch(function () { netFail(bt); });
+        }));
+        li.appendChild(acts);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  function renderHistory(h) {
+    var ul = $("history"); ul.textContent = "";
+    $("h-n").textContent = h.length ? String(h.length) : "";
+    var DEC = { accepted: ["通过", "approved", "v-pass"], rejected: ["拒绝", "rejected", "v-reject"], spam: ["垃圾", "spam", "v-reject"], duplicate: ["重复", "duplicate", ""] };
+    h.forEach(function (x) {
+      var li = el("li"); var r1 = el("div", "r1");
+      var t = TYPE[x.type] || [x.type, x.type];
+      var dec = DEC[x.decision] || [x.decision, x.decision, ""];
+      if (x.type === "report") dec = x.decision === "rejected" ? ["已忽略", "ignored", ""] : ["已处理", "handled", "v-pass"];
+      r1.appendChild(el("span", "when", [when(x.at)]));
+      r1.appendChild(biEl("span", "badge t-" + x.type, t[0], t[1]));
+      r1.appendChild(biEl("span", "kp-pill " + dec[2], dec[0], dec[1]));
+      r1.appendChild(x.by === "precheck-auto" ? biEl("span", "kp-pill", "机审", "AI") : biEl("span", "kp-pill", "人工", "human"));
+      if (x.status === "deleted") r1.appendChild(biEl("span", "kp-pill risk", "已删除", "deleted"));
+      li.appendChild(r1);
+      li.appendChild(el("div", "ex", [x.type === "report" ? "→ " + (x.item_id || "") : x.excerpt]));
+      ul.appendChild(li);
+    });
+  }
+
+  function button(cls, z, e, fn) {
+    var b = biEl("button", cls, z, e); b.type = "button";
+    b.addEventListener("click", function () { fn(b); });
+    return b;
+  }
+  // two-tap confirm inside the page (no window.confirm: home-screen shells may not show it)
+  function armed(z, e, z2, e2, fn) {
+    var b = biEl("button", "danger", z, e); b.type = "button"; var timer;
+    b.addEventListener("click", function () {
+      if (b.classList.contains("armed")) { clearTimeout(timer); b.classList.remove("armed"); fn(b); return; }
+      b.classList.add("armed"); b.textContent = ""; b.appendChild(bi(z2, e2));
+      timer = setTimeout(function () { b.classList.remove("armed"); b.textContent = ""; b.appendChild(bi(z, e)); }, 4000);
+    });
+    return b;
+  }
+
+  var MSG = {
+    accept: ["通过啦", "Approved"], reject: ["已拒绝", "Rejected"], spam: ["已标为垃圾", "Marked as spam"],
+    ignore: ["举报已忽略", "Report ignored"], remove: ["已删除，并关掉了这条举报", "Deleted; report closed"], takedown: ["已删除", "Deleted"]
+  };
+
+  function act(c, b, body, kind) {
+    Array.prototype.forEach.call(c.querySelectorAll("button"), function (x) { x.disabled = true; });
+    call("POST", "act", body).then(function (j) { done(j, c, b, body.op, kind); }).catch(function () { netFail(b, c); });
+  }
+
+  function done(j, c, b, op, kind) {
+    if (j._status === 401) { setToken(""); return showGate("登录过期了，请重新输入口令", "Session expired, please log in again"); }
+    if (j.ok || j.error === "already_handled") {
+      var m = j.ok ? MSG[op || j.op || "takedown"] : ["这条已经被处理过了", "Already handled"];
+      var extra = j.publish ? (zh() ? "，约 1 分钟后上墙" : " — live in about a minute") : "";
+      if (j.ok && op === "accept" && (kind === "tip" || kind === "amend")) extra = zh() ? "（分享/纠错仍需手动并入 TIPS.md）" : " (tips still go into TIPS.md by hand)";
+      toast(m[0] + (zh() ? extra : ""), m[1] + (zh() ? "" : extra));
+      if (c) vanish(c);
+      setTimeout(load, c ? 500 : 200);
+      return;
+    }
+    toast("没成功：" + (j.error || j._status), "Failed: " + (j.error || j._status), true);
+    if (c) Array.prototype.forEach.call(c.querySelectorAll("button"), function (x) { x.disabled = false; });
+    else if (b) b.disabled = false;
+  }
+  function netFail(b, c) {
+    toast("网络断了一下，再点一次试试", "Network hiccup, try again", true);
+    if (c) Array.prototype.forEach.call(c.querySelectorAll("button"), function (x) { x.disabled = false; });
+    else if (b) b.disabled = false;
+  }
+  function vanish(c) {
+    c.style.maxHeight = c.offsetHeight + "px";
+    requestAnimationFrame(function () {
+      c.classList.add("gone");
+      setTimeout(function () { c.style.maxHeight = "0"; c.style.paddingTop = c.style.paddingBottom = "0"; c.style.marginTop = "-12px"; }, 250);
+      setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 700);
+    });
+  }
+
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && token()) load(); });
+  load();
+})();
+</script>
+</body>
+</html>
