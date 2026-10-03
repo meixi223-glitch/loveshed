@@ -20,7 +20,7 @@
 <script>
 /* The site used to be one long page. Old deep links (#skills, #qa, #contribute, #tip-form, #q-…) now live on their own pages. */
 (function () {
-  var h = location.hash.slice(1), to = { skills: "skills.html", qa: "qa.html", contribute: "submit.html#contribute", "tip-form": "submit.html" };
+  var h = location.hash.slice(1), to = { qa: "qa.html", contribute: "submit.html#contribute", "tip-form": "submit.html" };
   if (Object.prototype.hasOwnProperty.call(to, h)) location.replace(to[h]);
   else if (/^q-/.test(h)) location.replace("qa.html#" + h);
 })();
@@ -39,7 +39,6 @@
     loveshed
   </a>
   <nav class="nav" aria-label="pages">
-    <a href="skills.html" class="nav-craft"><span class="zh">工艺库</span><span class="en">Craft</span></a>
     <a href="qa.html"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a>
     <a href="submit.html"><span class="zh">投稿</span><span class="en">Submit</span></a>
     <a href="mine.html" class="nav-mine"><span class="zh">我的</span><span class="en">Mine</span></a>
@@ -109,7 +108,7 @@
       </p>
       <div class="cta">
         <a class="btn primary" href="#routes"><span class="zh">我现在是哪种情况？</span><span class="en">What's my situation?</span></a>
-        <a class="btn ghost" href="skills.html"><span class="zh">看全部 <b id="skill-count">10</b> 张卡</span><span class="en">See all cards</span></a>
+        <a class="btn ghost" href="#skills"><span class="zh">看全部 <b id="skill-count">10</b> 张卡</span><span class="en">See all cards</span></a>
       </div>
     </div>
   </section>
@@ -139,29 +138,60 @@
   <!-- ============ ROUTES ============ -->
   <section id="routes" class="routes" aria-labelledby="routes-h">
     <h2 id="routes-h" class="sec-h"><span class="zh">按需求选路</span><span class="en">Pick your path</span></h2>
-    <p class="sec-sub"><span class="zh">点一条路，去工艺库看这条路上的卡。</span><span class="en">Tap a path to see its cards in the craft library.</span></p>
+    <p class="sec-sub"><span class="zh">点一条路，下面相关的卡会亮起来。</span><span class="en">Tap a path and the matching cards below light up.</span></p>
     <div class="route-grid">
-      <a class="route reveal" href="skills.html?scene=move">
+      <a class="route reveal" href="?scene=move#skills" data-go="move">
         <span class="r-ico" aria-hidden="true">⇢</span>
         <b><span class="zh">搬家</span><span class="en">Moving</span></b>
         <small><span class="zh">换服务器、换记忆库，一样不能落下</span><span class="en">New server, new memory store — nothing left behind</span></small>
       </a>
-      <a class="route reveal" href="skills.html?scene=fire">
+      <a class="route reveal" href="?scene=fire#skills" data-go="fire">
         <span class="r-ico" aria-hidden="true">✳</span>
         <b><span class="zh">救火</span><span class="en">Firefighting</span></b>
         <small><span class="zh">TA 变笨了、失忆了、少了几天</span><span class="en">Dumber, forgetful, missing days</span></small>
       </a>
-      <a class="route reveal" href="skills.html?scene=build">
+      <a class="route reveal" href="?scene=build#skills" data-go="build">
         <span class="r-ico" aria-hidden="true">⌂</span>
         <b><span class="zh">盖新房</span><span class="en">Building</span></b>
         <small><span class="zh">聊天页、声音、发照片和文件</span><span class="en">A chat page, a voice, photos and files</span></small>
       </a>
-      <a class="route reveal" href="skills.html?scene=care">
+      <a class="route reveal" href="?scene=care#skills" data-go="care">
         <span class="r-ico" aria-hidden="true">☾</span>
         <b><span class="zh">日常维护</span><span class="en">Upkeep</span></b>
         <small><span class="zh">换窗、发版、派活给别的 AI</span><span class="en">Window switches, releases, handing off work</span></small>
       </a>
     </div>
+  </section>
+
+  <!-- ============ CRAFT LIBRARY ============ -->
+  <section id="skills" class="skills" aria-labelledby="skills-h">
+    <h2 id="skills-h" class="sec-h"><span class="zh">工艺库</span><span class="en">The craft library</span></h2>
+    <p class="sec-sub"><span class="zh">正面是你会说出口的那句话。同一份工艺两种读法：「给机装」翻过来是战绩，交给施工 agent 装；「给人看」翻过来是人话步骤，没有施工队也能自己来。</span><span class="en">The front is what you'd actually say. One craft, two ways to read it: “For agents” flips to the battle record, for your builder agent to install; “For humans” flips to plain steps you can follow without a crew.</span></p>
+    <div id="lens-all" class="lens lens-all" role="group" aria-label="读法 / reading mode">
+      <button type="button" data-lens-all="human"><span class="zh">给人看</span><span class="en">For humans</span></button>
+      <button type="button" data-lens-all="machine"><span class="zh">给机装</span><span class="en">For agents</span></button>
+    </div>
+    <div class="chips" role="group" aria-label="filter">
+      <button type="button" class="chip" data-scene="all"><span class="zh">全部</span><span class="en">All</span></button>
+      <button type="button" class="chip" data-scene="move"><span class="zh">搬家</span><span class="en">Moving</span></button>
+      <button type="button" class="chip" data-scene="fire"><span class="zh">救火</span><span class="en">Firefighting</span></button>
+      <button type="button" class="chip" data-scene="build"><span class="zh">盖新房</span><span class="en">Building</span></button>
+      <button type="button" class="chip" data-scene="care"><span class="zh">日常维护</span><span class="en">Upkeep</span></button>
+    </div>
+    <p id="route-note" class="route-note" aria-live="polite"></p>
+    <ul id="cards" class="cards"></ul>
+    <noscript><p class="sec-sub">Cards need JavaScript — or browse <a href="https://github.com/meixi223-glitch/loveshed/tree/main/skills">skills/ on GitHub</a>.</p></noscript>
+    <div class="tip-invite reveal">
+      <span class="ti-ico" aria-hidden="true">✎</span>
+      <div class="ti-copy">
+        <h3><span class="zh">你也有一招？</span><span class="en">Got a trick of your own?</span></h3>
+        <p><span class="zh">人读版 tips 欢迎所有人投稿，不用会 git，也不用注册，去投稿页填一张表就好。维护者审核后合入，署名保留。</span><span class="en">Anyone can submit a human-version tip — no git, no account, just fill in a short form. A maintainer reviews and merges it, with your credit kept.</span></p>
+      </div>
+      <div class="cta">
+        <a class="btn primary" href="submit.html?type=tip"><span class="zh">去投稿</span><span class="en">Submit a tip</span></a>
+      </div>
+    </div>
+
   </section>
 
   <!-- ============ HOW TO INSTALL ============ -->
@@ -172,7 +202,7 @@
       <p><span class="zh">还没有施工 agent？每个目录里都有一份 <code>TIPS.md</code>：同一份工艺的人读版，不写代码、复制粘贴就能照做。确实离不开施工队的，也会给你一段可以直接发给 Claude Code / Codex 的话。</span><span class="en">No builder agent yet? Every folder has a <code>TIPS.md</code>: the human version of the same craft, no code, just copy and paste. Where a crew is truly needed, it gives you a brief you can send straight to Claude Code / Codex.</span></p>
     </div>
     <div class="cta">
-      <a class="btn primary" href="skills.html"><span class="zh">去工艺库挑卡</span><span class="en">Browse the craft library</span></a>
+      <a class="btn primary" href="#skills"><span class="zh">回到工艺库挑卡</span><span class="en">Back to the craft library</span></a>
       <a class="btn ghost" href="https://github.com/meixi223-glitch/loveshed/tree/main/skills"><span class="zh">在 GitHub 上看目录</span><span class="en">Browse skills/ on GitHub</span> ↗</a>
     </div>
   </section>
@@ -180,7 +210,7 @@
 
 <footer class="foot">
   <p>MIT · built by yumei &amp; Jin</p>
-  <p class="foot-links"><a href="skills.html"><span class="zh">工艺库</span><span class="en">Craft</span></a><span aria-hidden="true">·</span><a href="qa.html"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a><span aria-hidden="true">·</span><a href="submit.html"><span class="zh">投稿</span><span class="en">Submit</span></a><span aria-hidden="true">·</span><a href="https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md"><span class="zh">投稿指南</span><span class="en">Contributing</span> ↗</a></p>
+  <p class="foot-links"><a href="./#skills"><span class="zh">工艺库</span><span class="en">Craft</span></a><span aria-hidden="true">·</span><a href="qa.html"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a><span aria-hidden="true">·</span><a href="submit.html"><span class="zh">投稿</span><span class="en">Submit</span></a><span aria-hidden="true">·</span><a href="https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md"><span class="zh">投稿指南</span><span class="en">Contributing</span> ↗</a></p>
   <p class="foot-sub"><span class="zh">数据截至 2026-10-03，以仓库内 SKILL.md、EVALUATION.md 与 TIPS.md 为准。</span><span class="en">Data as of 2026-10-03; SKILL.md, EVALUATION.md and TIPS.md in the repo are the source of truth.</span></p>
 </footer>
 <nav class="tabbar" aria-label="tabs">

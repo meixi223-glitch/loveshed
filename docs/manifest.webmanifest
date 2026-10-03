@@ -17,7 +17,7 @@
     { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ],
   "shortcuts": [
-    { "name": "工艺库 · Craft", "short_name": "工艺库", "url": "skills.html" },
+    { "name": "工艺库 · Craft", "short_name": "工艺库", "url": "./#skills" },
     { "name": "提问区 · Q&A", "short_name": "提问区", "url": "qa.html" },
     { "name": "投稿 · Submit", "short_name": "投稿", "url": "submit.html" },
     { "name": "我的 · Mine", "short_name": "我的", "url": "mine.html" }

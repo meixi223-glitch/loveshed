@@ -76,11 +76,12 @@ html[data-lang="zh"] .en, html[data-lang="en"] .zh { display: none !important; }
   min-width: 40px; height: 32px; padding: 0 10px; font-size: 13px; cursor: pointer;
   box-shadow: 0 2px 10px rgba(124, 104, 196, .12);
 }
-/* bottom tab bar (phones): home / Q&A / submit / mine; the top bar keeps only the craft library link */
+/* bottom tab bar (phones): home / Q&A / submit / mine; the top bar keeps only brand + language */
 .tabbar { display: none; }
 @media (max-width: 760px) {
   .top { gap: 10px; padding-left: 14px; padding-right: 14px; }
-  .nav a:not(.nav-craft) { display: none; }
+  .nav { display: none; }
+  .lang { margin-left: auto; }
   body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
@@ -529,3 +530,12 @@ a.mine-link:hover .mine-title { color: var(--violet); }
 .media-ext b { font-weight: 600; }
 .media-ext:hover { border-style: solid; }
 .qa-contact { color: var(--ink-soft); overflow-wrap: anywhere; }
+
+/* P12: the craft library lives on the home page */
+#skills { scroll-margin-top: 56px; }
+/* phones: cards off the chosen path fold down to a faint one-line strip, so the home page stays short */
+@media (max-width: 760px) {
+  .card.dim .front { min-height: 0; padding-top: 12px; padding-bottom: 12px; }
+  .card.dim .front > :not(.scene) { display: none; }
+  .card.dim .scene { font-size: 15px; }
+}

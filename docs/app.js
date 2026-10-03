@@ -424,7 +424,7 @@
       els.forEach(function (el) { el.classList.add("in"); });
     }
 
-    /* ---------- craft library (skills.html) ---------- */
+    /* ---------- craft library (home page #skills; skills.html redirects here) ---------- */
     function initCards() {
       var list = document.getElementById("cards");
       if (!list) return;
@@ -507,13 +507,24 @@
         document.getElementById("route-note").innerHTML =
           r === "all" ? bi({ zh: SKILLS.length + " 张卡都在这里。", en: "All " + SKILLS.length + " cards." })
                       : bi({ zh: "「" + ROUTES[r].zh + "」这条路上有 " + n + " 张卡，已为你点亮。", en: n + " cards lit up for “" + ROUTES[r].en + "”." });
-        if (!keepUrl && history.replaceState) history.replaceState(null, "", r === "all" ? location.pathname : "?scene=" + r);
+        if (!keepUrl && history.replaceState) history.replaceState(null, "", location.pathname + (r === "all" ? "" : "?scene=" + r) + "#skills");
       }
       chips.forEach(function (ch) {
         ch.addEventListener("click", function () { pick(ch.getAttribute("data-scene")); });
       });
+      var sec = document.getElementById("skills");
+      function goSkills() { sec.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      // the path buttons above filter in place and glide down to the cards
+      document.querySelectorAll("a[data-go]").forEach(function (a) {
+        a.addEventListener("click", function (e) {
+          e.preventDefault();
+          pick(a.getAttribute("data-go"));
+          goSkills();
+        });
+      });
       pick(ROUTES.hasOwnProperty(P.scene) ? P.scene : "all", true);
-      // skills.html#skill-<id> (from "Mine"): show that card even if a filter would dim it
+      if (ROUTES.hasOwnProperty(P.scene) || location.hash === "#skills") setTimeout(goSkills, 150);
+      // ./#skill-<id> (from "Mine"): show that card even if a filter would dim it
       var target = location.hash && document.getElementById(location.hash.slice(1));
       if (target && target.classList.contains("card")) {
         if (target.classList.contains("dim")) pick("all");
@@ -819,7 +830,7 @@
       function renderFavs() {
         var favs = readList(FAV_KEY);
         favEl.innerHTML = favs.map(function (f) {
-          var href = f.kind === "skill" ? "skills.html#skill-" + encodeURIComponent(f.id) : "qa.html#" + encodeURIComponent(f.id);
+          var href = f.kind === "skill" ? "./#skill-" + encodeURIComponent(f.id) : "qa.html#" + encodeURIComponent(f.id);
           return '<li class="mine-item">' +
             '<a class="mine-link" href="' + href + '">' +
               '<span class="mine-tag">' + bi(f.kind === "skill" ? M.skill : M.q) + "</span>" +
