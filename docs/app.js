@@ -383,12 +383,16 @@
     a.className = "media-ext";
     a.innerHTML = '<span aria-hidden="true">↗</span> ' + bi(MEDIA.ext) + " · <b>" + esc(a.getAttribute("data-host").replace(/^www\./, "")) + "</b>";
   }, true);
+  // same rule as the inbox: answers go live unreviewed, so nothing that looks like a link
+  var ANSWER_LINK_RE = new RegExp("[a-z][a-z0-9+.-]*://|\\bwww\\.|\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.(?:com|cn|net|org|io|me|app|xyz|top|cc|co|ai|dev|link|ly|gg|tv|info|site|club|shop|" +
+    "vip|so|to|sh|im|fm|in|us|uk|jp|hk|tw|de|fr|ru|biz|online|store|tech|fun|live|pro|cloud|page|blog|one)\\b(?:[/:?#]|$|[^a-z0-9.-])", "i");
   function contactHtml(c) {
     return c ? ' · <span class="qa-contact">' + bi(MEDIA.contact) + " " + esc(c) + "</span>" : "";
   }
 
-  function loadQA() {
-    return fetch("qa.json", { cache: "no-cache" }).then(function (r) {
+  function loadQA(fresh) {
+    // fresh: bypass the CDN copy (Pages caches qa.json for a few minutes) right after posting an answer
+    return fetch("qa.json" + (fresh ? "?t=" + Date.now() : ""), { cache: "no-cache" }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
       return r.json();
     }).then(function (qa) {
@@ -570,9 +574,6 @@
       };
       ["tip", "amend", "question", "answer"].forEach(function (k) { TYPE_FIELDS[k].push("contact_visibility"); });
       var LINK_INPUTS = ["link1", "link2", "link3"];
-      // same rule as the inbox: answers go live unreviewed, so nothing that looks like a link
-      var ANSWER_LINK_RE = new RegExp("[a-z][a-z0-9+.-]*://|\\bwww\\.|\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.(?:com|cn|net|org|io|me|app|xyz|top|cc|co|ai|dev|link|ly|gg|tv|info|site|club|shop|" +
-        "vip|so|to|sh|im|fm|in|us|uk|jp|hk|tw|de|fr|ru|biz|online|store|tech|fun|live|pro|cloud|page|blog|one)\\b(?:[/:?#]|$|[^a-z0-9.-])", "i");
       var qaTitles = {};
       function fType() { return form.elements.type.value || "tip"; }
       function applyType() {
@@ -750,6 +751,20 @@
         anon:    { zh: "匿名姐妹", en: "Anonymous sister" },
         keeper:  { zh: "掌柜", en: "Keeper" },
         answer:  { zh: "我来回答", en: "I'll answer" },
+        ph:      { zh: "你遇到过吗？怎么过来的？像跟姐妹讲就好。仅限纯文字。", en: "Been there? How did you get through? Like telling a friend. Plain text only." },
+        nick:    { zh: "昵称（可空 = 匿名姐妹）", en: "Name (blank = anonymous sister)" },
+        post:    { zh: "直接发布", en: "Post now" },
+        posting: { zh: "发布中…", en: "Posting…" },
+        posted:  { zh: "已发布 ✓", en: "Posted ✓" },
+        rule:    { zh: "回答仅限纯文字，无需审核，发布后立即可见。", en: "Plain text only, no review — visible right after you post." },
+        okMsg:   { zh: "已发布，马上就能看到～ 一会儿会自动刷新这里。", en: "Posted — it'll show up in a moment. This list refreshes by itself shortly." },
+        refresh: { zh: "刷新看看", en: "Refresh" },
+        need:    { zh: "回答还空着呢。", en: "The answer is still empty." },
+        textOnly:{ zh: "回答仅限纯文字：请去掉网址、链接或邮箱（像 xxx.com 这样的也算）。", en: "Plain text only — please remove web addresses, links or emails (things like xxx.com count too)." },
+        wait:    { zh: "稍等一下再发～", en: "Give it a moment before posting again." },
+        dup:     { zh: "这条刚刚已经发过了。", en: "You just posted this one." },
+        gone:    { zh: "这个问题暂时不能回答了，刷新页面看看。", en: "This question can't take answers right now — try reloading." },
+        down:    { zh: "暂时没发出去，内容还在框里，过会儿再试试。", en: "Couldn't post just now — your text is still here, try again in a bit." },
         noAns:   { zh: "还没有回答，等掌柜和姐妹们来接。", en: "No answers yet — waiting for the keeper and the sisters." },
         ans:     { zh: "回答", en: "answers" },
         ans1:    { zh: "回答", en: "answer" },
@@ -761,25 +776,49 @@
       function when(day, stamp) {
         return '<time datetime="' + esc(stamp || day || "") + '" title="' + esc(day || (stamp || "").slice(0, 10)) + '">' + bi(ago(day, stamp)) + "</time>";
       }
+      function who(a) {
+        return a.role === "keeper" ? bi(QA.keeper) : a.nickname ? '<span class="qa-nick">' + esc(a.nickname) + "</span>" : bi(QA.anon);
+      }
+      function answersHtml(q) {
+        var as = q.answers || [];
+        if (!as.length) return '<p class="qa-none">' + bi(QA.noAns) + "</p>";
+        return '<ol class="qa-answers">' + as.map(function (a) {
+          return '<li class="qa-a' + (a.role === "keeper" ? " keeper" : "") + '"><p class="qa-by">' + who(a) +
+                 contactHtml(a.contact) + " · " + when(a.answered, a.answered_at) + "</p>" + para(a.body || "") + mediaHtml(a.media_links) + "</li>";
+        }).join("") + "</ol>";
+      }
+      function badgeHtml(n) {
+        return "<b>" + n + "</b><small>" + bi(n === 1 ? QA.ans1 : QA.ans) + "</small>";
+      }
+      function replyForm(q) {
+        return (
+          '<form class="qa-form" data-qid="' + esc(q.id) + '" novalidate>' +
+            '<label class="qa-f-l"><span aria-hidden="true">✎</span> ' + bi(QA.answer) + "</label>" +
+            '<textarea name="body" rows="3" maxlength="5000" data-ph-zh="' + esc(QA.ph.zh) + '" data-ph-en="' + esc(QA.ph.en) + '" aria-label="' + esc(QA.answer.zh + " / " + QA.answer.en) + '"></textarea>' +
+            '<div class="qa-f-row">' +
+              '<input name="nickname" maxlength="40" autocomplete="nickname" data-ph-zh="' + esc(QA.nick.zh) + '" data-ph-en="' + esc(QA.nick.en) + '" aria-label="' + esc(QA.nick.zh + " / " + QA.nick.en) + '">' +
+              '<button class="btn primary qa-post" type="submit">' + bi(QA.post) + "</button>" +
+            "</div>" +
+            '<div class="tf-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>' +
+            '<p class="qa-f-rule">' + bi(QA.rule) + "</p>" +
+            '<p class="qa-f-status" role="status" aria-live="polite"></p>' +
+          "</form>"
+        );
+      }
       function item(q) {
         var as = q.answers || [], n = as.length, id = esc(q.id);
-        var answers = as.map(function (a) {
-          return '<li class="qa-a' + (a.role === "keeper" ? " keeper" : "") + '"><p class="qa-by">' + bi(a.role === "keeper" ? QA.keeper : QA.anon) +
-                 contactHtml(a.contact) + " · " + when(a.answered, a.answered_at) + "</p>" + para(a.body || "") + mediaHtml(a.media_links) + "</li>";
-        }).join("");
         return (
           '<li class="qa-q" id="' + id + '">' +
             starBtn("q", q.id, "fav-q") +
             '<h2 class="qa-h"><button type="button" class="qa-head" aria-expanded="false" aria-controls="d-' + id + '">' +
               '<span class="qa-title">' + esc(q.title) + "</span>" +
               '<span class="qa-by">' + bi(QA.anon) + contactHtml(q.contact) + " · " + when(q.asked, q.asked_at) + "</span>" +
-              '<span class="qa-badge' + (n ? "" : " zero") + '"><b>' + n + "</b><small>" + bi(n === 1 ? QA.ans1 : QA.ans) + "</small></span>" +
+              '<span class="qa-badge' + (n ? "" : " zero") + '">' + badgeHtml(n) + "</span>" +
             "</button></h2>" +
             '<div class="qa-detail" id="d-' + id + '" hidden>' +
               '<div class="qa-body">' + para(q.body || "") + "</div>" + mediaHtml(q.media_links) +
-              (n ? '<ol class="qa-answers">' + answers + "</ol>" : '<p class="qa-none">' + bi(QA.noAns) + "</p>") +
-              '<a class="btn ghost qa-reply" href="submit.html?type=answer&amp;question_id=' + encodeURIComponent(q.id) + '">' +
-                '<span aria-hidden="true">✎</span> ' + bi(QA.answer) + "</a>" +
+              '<div class="qa-ans-wrap">' + answersHtml(q) + "</div>" +
+              replyForm(q) +
             "</div>" +
           "</li>"
         );
@@ -793,8 +832,15 @@
         if (!quiet && history.replaceState) history.replaceState(null, "", on ? "#" + li.id : location.pathname + location.search);
         if (scroll) li.scrollIntoView({ behavior: "smooth", block: "start" });
       }
+      function placeholders(l) {
+        qaList.querySelectorAll(".qa-form [data-ph-zh]").forEach(function (el) { el.placeholder = el.getAttribute("data-ph-" + l); });
+      }
+      langHooks.push(placeholders);
+      var byId = {};
       loadQA().then(function (qs) {
+        qs.forEach(function (q) { byId[q.id] = q; });
         qaList.innerHTML = qs.map(item).join("");
+        placeholders(root.getAttribute("data-lang"));
         document.querySelector(".qa-empty").hidden = qs.length > 0;
         document.querySelector(".forum-count").innerHTML = bi({ zh: "共 " + qs.length + " 个问题", en: qs.length + (qs.length === 1 ? " question" : " questions") });
         var h = decodeURIComponent(location.hash.slice(1));
@@ -804,7 +850,91 @@
       }).catch(function () {
         qaList.innerHTML = '<li class="qa-fail">' + bi(QA.fail) + "</li>";
       });
+      /* ---------- answer in place: type=answer to the same inbox, text only, no review ---------- */
+      function refreshAnswers(qid, li) {
+        return loadQA(true).then(function (qs) {
+          var q = qs.filter(function (x) { return x.id === qid; })[0];
+          if (!q) return false;
+          byId[qid] = q;
+          li.querySelector(".qa-ans-wrap").innerHTML = answersHtml(q);
+          var bd = li.querySelector(".qa-badge");
+          bd.innerHTML = badgeHtml((q.answers || []).length);
+          bd.classList.toggle("zero", !(q.answers || []).length);
+          return true;
+        }).catch(function () { return false; });
+      }
+      function fstore(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+      function fhash(str) { var h = 5381; for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h); }
+      qaList.addEventListener("submit", function (e) {
+        var f = e.target.closest(".qa-form");
+        if (!f) return;
+        e.preventDefault();
+        if (f.getAttribute("data-busy")) return;
+        var li = f.closest(".qa-q"), qid = f.getAttribute("data-qid");
+        var st = f.querySelector(".qa-f-status"), btn = f.querySelector(".qa-post"), ta = f.elements.body;
+        function say(kind, msg, extra) { st.className = "qa-f-status " + kind; st.innerHTML = bi(msg) + (extra || ""); }
+        var body = (ta.value || "").trim(), nick = (f.elements.nickname.value || "").trim();
+        ta.classList.remove("bad"); f.elements.nickname.classList.remove("bad");
+        if (!body) { ta.classList.add("bad"); return say("err", QA.need); }
+        if (ANSWER_LINK_RE.test(body)) { ta.classList.add("bad"); return say("err", QA.textOnly); }
+        if (ANSWER_LINK_RE.test(nick)) { f.elements.nickname.classList.add("bad"); return say("err", QA.textOnly); }
+        var h = fhash("answer\n" + qid + "\n\n" + body + "\n");
+        if (fstore("loveshed-tip-last-hash") === h) return say("err", QA.dup);
+        if (Date.now() - (+fstore("loveshed-tip-last-at") || 0) < 60 * 1000) return say("err", QA.wait);
+        f.setAttribute("data-busy", "1"); btn.disabled = true; btn.innerHTML = bi(QA.posting); say("", { zh: "", en: "" });
+        var d = { type: "answer", question_id: qid, body: body, nickname: nick, contact: "", contact_visibility: "private",
+                  media_links: [], website: (f.elements.website.value || "").trim() };
+        var ctl = "AbortController" in window ? new AbortController() : null;
+        var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
+        var ok = false;
+        fetch(INTAKE, {
+          method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+          headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), signal: ctl ? ctl.signal : undefined
+        }).then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; });
+        }).then(function (res) {
+          if (res.status === 201 && res.j.ok) {
+            ok = true;
+            fstore("loveshed-tip-last-at", String(Date.now())); fstore("loveshed-tip-last-hash", h);
+            addMine({ type: "answer", at: new Date().toISOString(), title: "", excerpt: body.slice(0, 140),
+                      question_id: qid, question_title: (byId[qid] || {}).title || "" });
+            ta.value = "";
+            btn.innerHTML = bi(QA.posted); f.classList.add("posted");
+            say("ok", QA.okMsg, ' <button type="button" class="qa-refresh">' + bi(QA.refresh) + "</button>");
+            // the answer goes live within a minute or so; look again a couple of times
+            [35000, 75000].forEach(function (ms) { setTimeout(function () { refreshAnswers(qid, li); }, ms); });
+            return;
+          }
+          if (res.status === 429) return say("err", QA.wait);
+          if (res.status === 400 && (res.j.reason === "links_not_allowed" || res.j.reason === "answers_text_only")) {
+            (res.j.field === "nickname" ? f.elements.nickname : ta).classList.add("bad");
+            return say("err", QA.textOnly);
+          }
+          if (res.status === 400 && res.j.field === "question_id") return say("err", QA.gone);
+          say("err", QA.down);
+        }).catch(function () {
+          say("err", QA.down);
+        }).then(function () {
+          clearTimeout(timer);
+          setTimeout(function () {
+            f.removeAttribute("data-busy"); btn.disabled = false;
+            if (!ok) btn.innerHTML = bi(QA.post);
+          }, ok ? 4000 : 1200);
+        });
+      });
+      qaList.addEventListener("input", function (e) {
+        var f = e.target.closest(".qa-form");
+        if (f && f.classList.contains("posted") && !f.getAttribute("data-busy")) {
+          f.classList.remove("posted"); f.querySelector(".qa-post").innerHTML = bi(QA.post);
+        }
+      });
       qaList.addEventListener("click", function (e) {
+        var rf = e.target.closest(".qa-refresh");
+        if (rf) {
+          rf.disabled = true;
+          refreshAnswers(rf.closest(".qa-form").getAttribute("data-qid"), rf.closest(".qa-q")).then(function () { rf.disabled = false; });
+          return;
+        }
         var fv = e.target.closest("button[data-fav]");
         if (fv) {
           var li = fv.closest(".qa-q"), on = fv.getAttribute("aria-pressed") !== "true";
