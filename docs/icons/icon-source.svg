@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a74d4"/><stop offset=".55" stop-color="#b58ad0"/><stop offset="1" stop-color="#e892ae"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".86" r=".55">
+      <stop offset="0" stop-color="#ffd2a3" stop-opacity=".55"/><stop offset="1" stop-color="#ffd2a3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="key" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9709a"/><stop offset="1" stop-color="#9b6fd0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- house: one bold white silhouette, rounded joins; stays inside the 80% safe zone -->
+  <path d="M512 236 L792 470 L740 470 L740 790 L284 790 L284 470 L232 470 Z" fill="#fffaf6" stroke="#fffaf6" stroke-width="56" stroke-linejoin="round"/>
+  <!-- heart-shaped keyhole: big heart + flared slot -->
+  <g fill="url(#key)">
+    <path transform="translate(512 536) scale(2.6) translate(-50 -46)" d="M50 92 C28 74 0 56 0 30 C0 12 13 0 28 0 C38 0 46 6 50 14 C54 6 62 0 72 0 C87 0 100 12 100 30 C100 56 72 74 50 92 Z"/>
+    <path d="M490 630 L534 630 L572 722 Q576 734 563 734 L461 734 Q448 734 452 722 Z"/>
+  </g>
+</svg>
