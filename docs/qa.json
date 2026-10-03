@@ -14,7 +14,17 @@
       "asked": "2026-10-03",
       "title": "[P11 自动化测试，请忽略] 带图提问",
       "body": "Automated test of image links and contact visibility. Please ignore; it will be removed.",
-      "answers": [],
+      "answers": [
+        {
+          "id": "a-20261003T134102Z-bf1783ed",
+          "answered": "2026-10-03",
+          "body": "Automated test answer with a public contact. Please ignore; it will be removed.",
+          "media_links": [
+            "https://github.com/meixi223-glitch/loveshed/blob/main/README.md"
+          ],
+          "contact": "GitHub: loveshed-test"
+        }
+      ],
       "media_links": [
         "https://raw.githubusercontent.com/meixi223-glitch/loveshed/main/docs/icons/icon-512.png",
         "https://github.com/meixi223-glitch/loveshed"
