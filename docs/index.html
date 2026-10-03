@@ -25,6 +25,7 @@
   </a>
   <nav class="nav" aria-label="sections">
     <a href="#skills"><span class="zh">工艺</span><span class="en">Craft</span></a>
+    <a href="#qa"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a>
     <a href="#contribute"><span class="zh">投稿</span><span class="en">Submit</span></a>
     <a href="https://github.com/meixi223-glitch/loveshed">GitHub</a>
   </nav>
@@ -182,26 +183,35 @@
     </div>
 
     <form id="tip-form" class="tip-form reveal" novalidate>
-      <h3><span class="zh">直接投稿</span><span class="en">Submit a tip here</span></h3>
-      <p class="tf-sub"><span class="zh">不用注册，不用会 GitHub。投稿先进审核队列，维护者看过才会上架，署名保留；不写昵称就是匿名。</span><span class="en">No account, no GitHub. Your tip goes into a review queue; it is listed only after a maintainer reads it, with your name kept — or leave the name blank to stay anonymous.</span></p>
+      <h3><span data-types="tip amend"><span class="zh">直接投稿</span><span class="en">Submit a tip here</span></span><span data-types="question"><span class="zh">提个问题</span><span class="en">Ask a question</span></span><span data-types="answer"><span class="zh">我来回答</span><span class="en">Answer a question</span></span></h3>
+      <p class="tf-sub" data-types="tip amend"><span class="zh">不用注册，不用会 GitHub。投稿先进审核队列，维护者看过才会上架，署名保留；不写昵称就是匿名。</span><span class="en">No account, no GitHub. Your tip goes into a review queue; it is listed only after a maintainer reads it, with your name kept — or leave the name blank to stay anonymous.</span></p>
+      <p class="tf-sub" data-types="question answer"><span class="zh">不用注册。问题和回答都先进审核队列，看过才会出现在提问区，而且一律显示为“匿名姐妹”。</span><span class="en">No account needed. Questions and answers go through the review queue first, and always appear as “an anonymous sister”.</span></p>
       <div class="tf-type" role="radiogroup" aria-label="类型 / type">
-        <label><input type="radio" name="type" value="tip" checked> <span class="zh">新的一招</span><span class="en">A new tip</span></label>
-        <label><input type="radio" name="type" value="amend"> <span class="zh">补充 / 纠错已有的</span><span class="en">Add to / fix an existing one</span></label>
+        <label><input type="radio" name="type" value="tip" checked> <span class="zh">分享经验</span><span class="en">Share a tip</span></label>
+        <label><input type="radio" name="type" value="amend"> <span class="zh">补充 / 纠错</span><span class="en">Add to / fix a card</span></label>
+        <label><input type="radio" name="type" value="question"> <span class="zh">提个问题</span><span class="en">Ask a question</span></label>
+        <label class="tf-answer-radio" hidden><input type="radio" name="type" value="answer" tabindex="-1"> <span class="zh">回答</span><span class="en">Answer</span></label>
       </div>
-      <label class="tf-field"><span class="tf-l"><span class="zh">对应哪张卡</span><span class="en">Which card</span></span>
+      <div class="tf-answering" data-types="answer">
+        <p class="tf-l"><span class="zh">你在回答</span><span class="en">You're answering</span></p>
+        <p class="tf-qtitle"></p>
+        <button type="button" class="tf-unanswer"><span class="zh">不答了，换成提问</span><span class="en">Never mind — ask instead</span></button>
+        <input type="hidden" name="question_id" value="">
+      </div>
+      <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">对应哪张卡</span><span class="en">Which card</span></span>
         <select name="skill" required></select></label>
-      <label class="tf-field"><span class="tf-l"><span class="zh">标题</span><span class="en">Title</span> <i>*</i></span>
-        <input name="title" maxlength="200" required data-ph-zh="一句话说清这招" data-ph-en="The trick in one line"></label>
-      <label class="tf-field"><span class="tf-l"><span class="zh">怎么做</span><span class="en">How to do it</span> <i>*</i></span>
-        <textarea name="body" rows="7" maxlength="5000" required data-ph-zh="一步一步写，像跟朋友讲。不要贴密钥、IP、真名。" data-ph-en="Step by step, like telling a friend. No keys, IPs or real names."></textarea>
+      <label class="tf-field" data-types="tip amend question"><span class="tf-l"><span data-types="tip amend"><span class="zh">标题</span><span class="en">Title</span></span><span data-types="question"><span class="zh">你的问题</span><span class="en">Your question</span></span> <i>*</i></span>
+        <input name="title" maxlength="200" required data-ph-zh="一句话说清这招" data-ph-en="The trick in one line" data-ph-q-zh="一句话问出来" data-ph-q-en="Your question in one line"></label>
+      <label class="tf-field"><span class="tf-l"><span data-types="tip amend"><span class="zh">怎么做</span><span class="en">How to do it</span></span><span data-types="question"><span class="zh">说说具体情况</span><span class="en">What's going on</span></span><span data-types="answer"><span class="zh">你的回答</span><span class="en">Your answer</span></span> <i>*</i></span>
+        <textarea name="body" rows="7" maxlength="5000" required data-ph-zh="一步一步写，像跟朋友讲。不要贴密钥、IP、真名。" data-ph-en="Step by step, like telling a friend. No keys, IPs or real names." data-ph-q-zh="发生了什么、试过什么、卡在哪里。不要贴密钥、IP、真名。" data-ph-q-en="What happened, what you tried, where you're stuck. No keys, IPs or real names." data-ph-a-zh="你遇到过吗？怎么过来的？像跟姐妹讲就好。不要贴密钥、IP、真名。" data-ph-a-en="Been there? How did you get through? Like telling a friend. No keys, IPs or real names."></textarea>
         <small class="tf-count" data-for="body">0 / 5000</small></label>
       <div class="tf-row">
-        <label class="tf-field"><span class="tf-l"><span class="zh">实装多久</span><span class="en">In use for</span></span>
+        <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">实装多久</span><span class="en">In use for</span></span>
           <input name="duration" maxlength="200" data-ph-zh="比如：两周，每天在用" data-ph-en="e.g. two weeks, daily"></label>
-        <label class="tf-field"><span class="tf-l"><span class="zh">昵称（可空 = 匿名）</span><span class="en">Name (blank = anonymous)</span></span>
+        <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">昵称（可空 = 匿名）</span><span class="en">Name (blank = anonymous)</span></span>
           <input name="nickname" maxlength="200" autocomplete="nickname" data-ph-zh="上架时的署名" data-ph-en="Credit shown when listed"></label>
       </div>
-      <label class="tf-field"><span class="tf-l"><span class="zh">踩过的坑</span><span class="en">What went wrong</span></span>
+      <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">踩过的坑</span><span class="en">What went wrong</span></span>
         <input name="pitfalls" maxlength="200" data-ph-zh="没踩过就写“暂无”" data-ph-en="“None yet” is fine"></label>
       <label class="tf-field"><span class="tf-l"><span class="zh">联系方式（可空，只有维护者看得到）</span><span class="en">Contact (optional, maintainers only)</span></span>
         <input name="contact" maxlength="200" data-ph-zh="想被追问细节再留" data-ph-en="Only if you'd like follow-up questions"></label>
@@ -213,6 +223,17 @@
       </div>
       <p class="tf-status" role="status" aria-live="polite"></p>
     </form>
+  </section>
+
+  <!-- ============ Q&A ============ -->
+  <section id="qa" class="qa-board" aria-labelledby="qa-h">
+    <h2 id="qa-h" class="sec-h"><span class="zh">提问区</span><span class="en">Questions &amp; answers</span></h2>
+    <p class="sec-sub"><span class="zh">卡片里没写到的，就在这里问。问题和回答都经过审核，所有人都显示为“匿名姐妹”。</span><span class="en">Whatever the cards don't cover, ask here. Every question and answer is reviewed, and everyone shows up as “an anonymous sister”.</span></p>
+    <ol id="qa-list" class="qa-list" aria-live="polite"></ol>
+    <p class="qa-empty" hidden><span class="zh">提问区暂时还空着。</span><span class="en">Nothing here yet.</span></p>
+    <div class="cta">
+      <a class="btn primary" href="#tip-form" data-ask><span class="zh">提个问题</span><span class="en">Ask a question</span></a>
+    </div>
   </section>
 
   <!-- ============ CONTRIBUTE ============ -->

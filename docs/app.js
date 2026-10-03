@@ -370,8 +370,36 @@
       invalid: { zh: "有一栏没通过检查，请看看是不是太长了。", en: "One field didn't pass the check — is it too long?" },
       down:    { zh: "投稿口暂时连不上。内容别丢，可以", en: "The inbox can't be reached right now. Don't lose your text — you can " },
       gh:      { zh: "改用 GitHub issue 投稿 ↗", en: "submit it as a GitHub issue instead ↗" },
-      newCard: { zh: "新的一招（还没有对应的卡）", en: "Something new (no card yet)" }
+      newCard: { zh: "新的一招（还没有对应的卡）", en: "Something new (no card yet)" },
+      okQ:     { zh: "问题已进审核队列，通过后会出现在提问区。谢谢你来问！", en: "Your question is in the review queue and will show up in Q&A once approved. Thanks for asking!" },
+      okA:     { zh: "回答已进审核队列，通过后会挂在这个问题下面。谢谢你！", en: "Your answer is in the review queue and will appear under the question once approved. Thank you!" },
+      needQ:   { zh: "问题和“具体情况”都要写一写。", en: "Please fill in both the question and what's going on." },
+      needA:   { zh: "回答还空着呢。", en: "The answer is still empty." },
+      goneQ:   { zh: "这个问题暂时不能回答了（可能刚下架），刷新页面看看。", en: "That question can't take answers right now (maybe just removed) — try reloading." }
     };
+    var TYPE_FIELDS = {
+      tip:      ["skill", "title", "body", "duration", "pitfalls", "nickname", "contact"],
+      amend:    ["skill", "title", "body", "duration", "pitfalls", "nickname", "contact"],
+      question: ["title", "body", "contact"],
+      answer:   ["question_id", "body", "contact"]
+    };
+    var qaTitles = {};
+    function fType() { return form.elements.type.value || "tip"; }
+    function applyType() {
+      var t = fType();
+      form.setAttribute("data-type", t);
+      form.querySelectorAll("[data-types]").forEach(function (el) {
+        el.hidden = el.getAttribute("data-types").split(" ").indexOf(t) < 0;
+      });
+      if (t === "tip" || t === "amend") skillOptions(root.getAttribute("data-lang"));
+      placeholders(root.getAttribute("data-lang"));
+    }
+    function placeholders(l) {
+      var t = fType(), v = t === "question" ? "q-" : t === "answer" ? "a-" : "";
+      form.querySelectorAll("[data-ph-zh]").forEach(function (el) {
+        el.placeholder = el.getAttribute("data-ph-" + v + l) || el.getAttribute("data-ph-" + l);
+      });
+    }
     function skillOptions(l) {
       var cur = fSkill.value;
       var isAmend = form.elements.type.value === "amend";
@@ -382,25 +410,35 @@
     }
     function formLang(l) {
       skillOptions(l);
-      form.querySelectorAll("[data-ph-zh]").forEach(function (el) { el.placeholder = el.getAttribute("data-ph-" + l); });
+      placeholders(l);
     }
     langHooks.push(formLang);
-    formLang(root.getAttribute("data-lang"));
+    applyType();
     form.querySelectorAll("input[name=type]").forEach(function (r) {
-      r.addEventListener("change", function () { skillOptions(root.getAttribute("data-lang")); });
+      r.addEventListener("change", applyType);
     });
+    form.querySelector(".tf-unanswer").addEventListener("click", function () { openForm("question"); });
     var bodyCount = form.querySelector('.tf-count[data-for="body"]');
     form.elements.body.addEventListener("input", function () { bodyCount.textContent = form.elements.body.value.length + " / 5000"; });
 
-    function openForm(type, skill) {
+    function openForm(type, skill, qid) {
       form.querySelector('input[name=type][value="' + type + '"]').checked = true;
-      skillOptions(root.getAttribute("data-lang"));
+      form.elements.question_id.value = type === "answer" ? qid : "";
+      form.querySelector(".tf-qtitle").textContent = type === "answer" ? (qaTitles[qid] || "") : "";
+      applyType();
       if (skill) fSkill.value = skill;
+      form.classList.remove("sent");
+      fStatus.className = "tf-status"; fStatus.textContent = "";
       form.classList.add("in");
       form.scrollIntoView({ behavior: "smooth", block: "start" });
-      setTimeout(function () { form.elements.title.focus({ preventScroll: true }); }, 500);
+      var first = type === "answer" ? form.elements.body : form.elements.title;
+      setTimeout(function () { first.focus({ preventScroll: true }); }, 500);
     }
     function ghUrl(d) {
+      if (d.type === "question" || d.type === "answer") {
+        var title = d.type === "question" ? "[question] " + d.title : "[answer] " + (qaTitles[d.question_id] || d.question_id);
+        return REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(d.body.slice(0, 1500));
+      }
       var amend = d.type === "amend";
       var u = REPO + "/issues/new?template=" + (amend ? "tip-amend.yml" : "tip-submit.yml") +
               "&title=" + encodeURIComponent((amend ? "[tip-fix] " : "[tip] ") + (d.skill !== "new" ? d.skill + ": " : "") + d.title);
@@ -422,16 +460,19 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       if (busy) return;
-      var d = {};
-      ["type", "skill", "title", "body", "duration", "pitfalls", "nickname", "contact", "website"].forEach(function (k) {
+      var t = fType();
+      var d = { type: t };
+      TYPE_FIELDS[t].concat(["website"]).forEach(function (k) {
         d[k] = (form.elements[k].value || "").trim();
       });
       form.querySelectorAll(".bad").forEach(function (el) { el.classList.remove("bad"); });
-      if (!d.title || !d.body) {
+      if (t === "answer") {
+        if (!d.body) { form.elements.body.classList.add("bad"); return say("err", MSG.needA); }
+      } else if (!d.title || !d.body) {
         (!d.title ? form.elements.title : form.elements.body).classList.add("bad");
-        return say("err", MSG.need);
+        return say("err", t === "question" ? MSG.needQ : MSG.need);
       }
-      var h = hash(d.skill + "\n" + d.title + "\n" + d.body);
+      var h = hash(t + "\n" + (d.skill || d.question_id || "") + "\n" + (d.title || "") + "\n" + d.body);
       if (store("loveshed-tip-last-hash") === h) return say("err", MSG.dup);
       var last = +store("loveshed-tip-last-at") || 0;
       if (Date.now() - last < GAP_MS) return say("err", MSG.wait);
@@ -450,12 +491,13 @@
           store("loveshed-tip-last-at", String(Date.now()));
           store("loveshed-tip-last-hash", h);
           form.classList.add("sent");
-          say("ok", MSG.ok);
+          say("ok", t === "question" ? MSG.okQ : t === "answer" ? MSG.okA : MSG.ok);
           ["title", "body", "duration", "pitfalls"].forEach(function (k) { form.elements[k].value = ""; });
           bodyCount.textContent = "0 / 5000";
           return;
         }
         if (res.status === 429) return say("err", MSG.rate, ghUrl(d));
+        if (res.status === 400 && res.j.field === "question_id") return say("err", MSG.goneQ);
         if (res.status === 400 && res.j.field && form.elements[res.j.field]) {
           form.elements[res.j.field].classList.add("bad");
           return say("err", res.j.reason === "markup_not_allowed" ? MSG.markup : MSG.invalid);
@@ -470,6 +512,55 @@
       });
     });
     form.addEventListener("input", function () { form.classList.remove("sent"); });
+
+    /* ---------- Q&A board (docs/qa.json, reviewed entries only) ---------- */
+    var qaList = document.getElementById("qa-list");
+    var QA = {
+      anon:    { zh: "匿名姐妹", en: "Anonymous sister" },
+      keeper:  { zh: "掌柜", en: "Keeper" },
+      answer:  { zh: "我来回答", en: "I'll answer" },
+      noAns:   { zh: "还没有回答，等掌柜和姐妹们来接。", en: "No answers yet — waiting for the keeper and the sisters." },
+      nAns:    { zh: " 条回答", en: " answers" },
+      fail:    { zh: "提问区暂时没加载出来，过会儿刷新试试。", en: "Q&A didn't load — try reloading in a bit." }
+    };
+    function para(text) {
+      return text.split(/\n{2,}/).map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("");
+    }
+    function qaItem(q) {
+      var answers = (q.answers || []).map(function (a) {
+        return '<li class="qa-a"><p class="qa-by">' + bi(a.role === "keeper" ? QA.keeper : QA.anon) +
+               ' · <time>' + esc(a.answered || "") + "</time></p>" + para(a.body) + "</li>";
+      }).join("");
+      var n = (q.answers || []).length;
+      return (
+        '<li class="qa-q" id="' + esc(q.id) + '">' +
+          '<h3 class="qa-title">' + esc(q.title) + "</h3>" +
+          '<p class="qa-by">' + bi(QA.anon) + ' · <time>' + esc(q.asked || "") + "</time>" +
+            (n ? ' · <span class="qa-n">' + n + bi(QA.nAns) + "</span>" : "") + "</p>" +
+          '<div class="qa-body">' + para(q.body || "") + "</div>" +
+          (n ? '<ol class="qa-answers">' + answers + "</ol>" : '<p class="qa-none">' + bi(QA.noAns) + "</p>") +
+          '<button type="button" class="btn ghost qa-reply" data-answer="' + esc(q.id) + '">' + bi(QA.answer) + "</button>" +
+        "</li>"
+      );
+    }
+    fetch("qa.json", { cache: "no-cache" }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function (qa) {
+      var qs = (qa.questions || []).slice().sort(function (a, b) { return a.asked < b.asked ? 1 : a.asked > b.asked ? -1 : 0; });
+      qs.forEach(function (q) { qaTitles[q.id] = q.title; });
+      qaList.innerHTML = qs.map(qaItem).join("");
+      document.querySelector(".qa-empty").hidden = qs.length > 0;
+    }).catch(function () {
+      qaList.innerHTML = '<li class="qa-fail">' + bi(QA.fail) + "</li>";
+    });
+    qaList.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-answer]");
+      if (b) openForm("answer", null, b.getAttribute("data-answer"));
+    });
+    document.querySelectorAll("[data-ask]").forEach(function (a) {
+      a.addEventListener("click", function (e) { e.preventDefault(); openForm("question"); });
+    });
 
     /* ---------- routes ---------- */
     var chips = document.querySelectorAll("[data-route]");
