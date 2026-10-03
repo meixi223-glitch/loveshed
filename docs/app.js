@@ -283,6 +283,17 @@
   try { saved = localStorage.getItem("loveshed-lang"); } catch (e) {}
   setLang(saved || (/^zh/i.test(navigator.language || "") ? "zh" : "en"));
 
+  /* ---------- offline / installable (see sw.js: network-first, so releases show at once) ---------- */
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").then(function (reg) {
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible") reg.update().catch(function () {});
+        });
+      }).catch(function () {});
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("lang-toggle").addEventListener("click", function () {
       setLang(root.getAttribute("data-lang") === "zh" ? "en" : "zh");
