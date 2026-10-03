@@ -540,13 +540,15 @@ a.mine-link:hover .mine-title { color: var(--violet); }
   .card.dim .scene { font-size: 15px; }
 }
 
-/* P13: iOS home-screen app paints under the status bar (black-translucent, white glyphs).
-   Only there is env(safe-area-inset-top) > 0 at the very top; give that strip a violet band
-   that the white clock/battery stay readable on, fading into the lavender header below. */
+/* P13/P15: iOS home-screen app paints under the status bar (black-translucent, white glyphs).
+   Only there is env(safe-area-inset-top) > 0, so elsewhere the band has zero height.
+   Top-down: a soft violet where the white clock/battery sit, melting into the header lavender
+   (#f5effb) a little below the inset so there is no seam. */
 .top::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: env(safe-area-inset-top, 0px);
-  background: linear-gradient(120deg, #7c68c4, #9a78c9 60%, #b77fb8);
-  box-shadow: 0 6px 14px -6px rgba(124, 104, 196, .45);
+  content: ""; position: absolute; left: 0; right: 0; top: 0;
+  height: calc(env(safe-area-inset-top, 0px) * 1.3);
+  background: linear-gradient(180deg,
+    #8f7cd5 0%, #9b89da 48%, #c7baea 66%, #e9e1f7 82%, rgba(245, 239, 251, 0) 100%);
   pointer-events: none;
 }
 
