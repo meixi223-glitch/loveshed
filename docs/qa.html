@@ -42,9 +42,9 @@
 
 <main id="top">
 
-  <section id="qa" class="qa-board page-head" aria-labelledby="qa-h">
+  <section id="qa" class="qa-board page-head" aria-labelledby="qa-h" data-view="list">
     <h1 id="qa-h" class="sec-h"><span class="zh">提问区</span><span class="en">Questions &amp; answers</span></h1>
-    <p class="sec-sub"><span class="zh">卡片里没写到的，就在这里问。问题和回答都经过审核，所有人都显示为“匿名姐妹”。</span><span class="en">Whatever the cards don't cover, ask here. Every question and answer is reviewed, and everyone shows up as “an anonymous sister”.</span></p>
+    <p class="sec-sub"><span class="zh">卡片里没写到的，就在这里问。提问经过审核再上墙；回答即时可见。每个人用一个随机昵称，或者勾选“匿名姐妹”。</span><span class="en">Whatever the cards don't cover, ask here. Questions are reviewed before they go up; answers show up right away. Everyone posts under a random name — or as “an anonymous sister”.</span></p>
     <div class="cta">
       <a class="btn primary" href="submit.html?type=question"><span aria-hidden="true">✎</span> <span class="zh">我要提问</span><span class="en">Ask a question</span></a>
     </div>
@@ -56,6 +56,9 @@
     <p class="qa-empty" hidden><span class="zh">提问区暂时还空着，来问第一个吧。</span><span class="en">Nothing here yet — be the first to ask.</span></p>
     <noscript><p class="sec-sub">The Q&amp;A board needs JavaScript — or read <a href="qa.json">qa.json</a> directly.</p></noscript>
   </section>
+
+  <!-- one question with all its answers (qa.html?id=q-…); filled in by app.js -->
+  <section id="qa-thread" class="qa-thread page-head" aria-live="polite" hidden></section>
 </main>
 
 <footer class="foot">

@@ -583,3 +583,66 @@ a.mine-link:hover .mine-title { color: var(--violet); }
 }
 .qa-nick { color: var(--ink-soft); font-weight: 600; }
 @media (max-width: 380px) { .qa-f-row { flex-wrap: wrap; } .qa-post { width: 100%; justify-content: center; } }
+
+/* ---------- P16: forum list → thread ---------- */
+a.qa-head { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+a.qa-head:hover .qa-title { color: var(--violet); }
+.qa-q:has(a.qa-head:active) { transform: scale(.99); }
+.qa-thread[hidden], .qa-board[hidden] { display: none !important; }
+.qa-t-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.qa-back { font-size: 14px; text-decoration: none; color: var(--violet); padding: 6px 2px; }
+.qa-t-q {
+  margin-top: 12px; padding: 22px 20px 20px; border-radius: 24px;
+  background: var(--glass-strong); border: 1px solid var(--line);
+  backdrop-filter: blur(16px) saturate(1.15); -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  box-shadow: 0 10px 34px rgba(124, 104, 196, .1), inset 0 1px 0 #fff;
+}
+.qa-t-title { margin: 0 0 6px; font: 600 clamp(20px, 5.4vw, 26px)/1.45 var(--serif); color: var(--ink); overflow-wrap: anywhere; }
+.qa-t-count { margin: 26px 4px 0; font: 600 16px/1.4 var(--serif); color: var(--ink-soft); }
+.qa-thread .qa-answers { margin-top: 12px; }
+.qa-thread .qa-a { scroll-margin-top: 80px; transition: box-shadow .6s var(--ease); }
+.qa-thread .qa-a.hl { box-shadow: 0 0 0 2px rgba(229, 155, 181, .7); }
+.qa-a.is-reply { margin-left: 18px; border-left-color: rgba(165, 147, 224, .75); }
+.qa-a.mine { background: rgba(255, 246, 236, .7); }
+.qa-a.gone { background: rgba(255, 255, 255, .35); border-left-color: var(--pencil); }
+.qa-quote {
+  display: grid; gap: 2px; margin: 0 0 8px; padding: 6px 10px; border-radius: 12px; text-decoration: none;
+  background: rgba(124, 104, 196, .07); border-left: 2px solid rgba(124, 104, 196, .35); font-size: 12.5px;
+}
+.qa-quote-who { color: var(--violet); font-weight: 600; }
+.qa-quote-ex { color: var(--ink-faint); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.qa-quote.gone { color: var(--ink-faint); font-style: italic; }
+.qa-acts { display: flex; gap: 14px; margin-top: 8px; }
+.qa-act {
+  padding: 2px 0; border: 0; background: none; cursor: pointer; font: inherit; font-size: 12.5px; color: var(--ink-faint);
+  border-bottom: 1px dashed transparent; -webkit-tap-highlight-color: transparent;
+}
+.qa-act:hover { color: var(--violet); border-bottom-color: var(--pencil); }
+.qa-act.del { color: #b0587a; }
+.qa-act.del.arm { color: #fff; background: #d0708f; border-radius: 999px; padding: 2px 10px; }
+.qa-act[disabled] { opacity: .6; cursor: default; }
+.qa-report { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 8px; }
+.qa-report input {
+  flex: 1 1 180px; min-width: 0; font: 14px/1.5 var(--sans); color: var(--ink); padding: 6px 12px;
+  border-radius: 12px; background: rgba(255, 255, 255, .8); border: 1px solid rgba(124, 104, 196, .22);
+}
+.qa-act-msg { margin: 6px 0 0; font-size: 12.5px; }
+.qa-act-msg:empty { display: none; }
+.qa-act-msg.ok { color: #6b5bb0; }
+.qa-act-msg.err { color: #b0587a; }
+.qa-thread .qa-form { margin-top: 20px; }
+.qa-f-reply { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--violet); }
+.qa-f-reply[hidden] { display: none; }
+.qa-f-unreply { border: 0; background: rgba(124, 104, 196, .12); color: var(--violet); border-radius: 50%; width: 22px; height: 22px; line-height: 1; cursor: pointer; }
+.qa-thread .qa-f-row { flex-wrap: wrap; }
+.qa-f-id { flex: 1 1 auto; font-size: 13px; color: var(--ink-soft); min-width: 0; }
+.qa-f-id b { color: var(--violet); font-weight: 600; }
+.qa-form.is-anon .qa-f-id b { color: var(--ink-soft); }
+.qa-f-anon { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ink-soft); cursor: pointer; }
+.qa-f-anon input { accent-color: var(--violet); }
+.tf-id { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; font-size: 14px; color: var(--ink-soft); }
+.tf-id b { color: var(--violet); }
+.tf-id label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.tf-id input { accent-color: var(--violet); }
+.tf-id .tf-hint { flex-basis: 100%; margin-top: 0; }
+@media (max-width: 380px) { .qa-thread .qa-post { width: 100%; justify-content: center; } }

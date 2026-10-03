@@ -48,8 +48,8 @@
     <form id="tip-form" class="tip-form reveal" novalidate>
       <h3><span data-types="tip amend"><span class="zh">直接投稿</span><span class="en">Submit a tip here</span></span><span data-types="question"><span class="zh">提个问题</span><span class="en">Ask a question</span></span><span data-types="answer"><span class="zh">我来回答</span><span class="en">Answer a question</span></span></h3>
       <p class="tf-sub" data-types="tip amend"><span class="zh">不用注册，不用会 GitHub。投稿先进审核队列，维护者看过才会上架，署名保留；不写昵称就是匿名。</span><span class="en">No account, no GitHub. Your tip goes into a review queue; it is listed only after a maintainer reads it, with your name kept — or leave the name blank to stay anonymous.</span></p>
-      <p class="tf-sub" data-types="question"><span class="zh">不用注册。问题先经过审核再出现在提问区，一律显示为“匿名姐妹”。</span><span class="en">No account needed. Questions are reviewed before they appear in Q&amp;A, always as “an anonymous sister”.</span></p>
-      <p class="tf-sub tf-answer-rule" data-types="answer"><span class="zh">回答仅限纯文字（不能带链接和图片），无需审核，即时可见：发出后一两分钟就会出现在问题下面，一律显示为“匿名姐妹”。</span><span class="en">Answers are plain text only (no links or pictures) and need no review — they show up under the question within a minute or two, always as “an anonymous sister”.</span></p>
+      <p class="tf-sub" data-types="question"><span class="zh">不用注册。问题先经过审核再出现在提问区。署名是这台设备固定的随机昵称，也可以勾选这次匿名。</span><span class="en">No account needed. Questions are reviewed before they appear in Q&amp;A, under this device's random name — or anonymously if you tick the box.</span></p>
+      <p class="tf-sub tf-answer-rule" data-types="answer"><span class="zh">回答仅限纯文字（不能带链接和图片），无需审核，即时可见：发出后一两分钟就会出现在问题下面。署名是随机昵称或“匿名姐妹”。</span><span class="en">Answers are plain text only (no links or pictures) and need no review — they show up under the question within a minute or two, under your random name or as “an anonymous sister”.</span></p>
       <div class="tf-type" role="radiogroup" aria-label="类型 / type">
         <label><input type="radio" name="type" value="tip" checked> <span class="zh">分享经验</span><span class="en">Share a tip</span></label>
         <label><input type="radio" name="type" value="amend"> <span class="zh">补充 / 纠错</span><span class="en">Add to / fix a card</span></label>
@@ -84,6 +84,11 @@
         <input name="link3" type="url" inputmode="url" maxlength="500" autocomplete="off" data-ph-zh="https://…（可空）" data-ph-en="https://… (optional)">
         <small class="tf-hint"><span class="zh">以 .png .jpg .webp .gif 结尾的会直接显示成图片，其他显示为外部链接。带链接的稿件一律人工审核。</span><span class="en">Links ending in .png .jpg .webp .gif show as pictures; others show as external links. Anything with a link is always reviewed by a person.</span></small>
       </fieldset>
+      <div class="tf-id" data-types="question answer">
+        <span><span class="zh">以 </span><span class="en">Posting as </span><b class="tf-nick"></b><span class="zh"> 发布</span></span>
+        <label><input type="checkbox" name="anon"> <span class="zh">这次匿名</span><span class="en">Anonymous this time</span></label>
+        <small class="tf-hint"><span class="zh">昵称是随机的，同一台设备一直用同一个，不能自己改。</span><span class="en">The name is random, stays the same on this device, and can't be edited.</span></small>
+      </div>
       <label class="tf-field"><span class="tf-l"><span class="zh">联系方式（可空）</span><span class="en">Contact (optional)</span></span>
         <input name="contact" maxlength="200" data-ph-zh="想被追问细节再留" data-ph-en="Only if you'd like follow-up questions"></label>
       <div class="tf-vis" role="radiogroup" aria-label="联系方式可见性 / contact visibility">

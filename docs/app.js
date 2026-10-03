@@ -390,6 +390,42 @@
     return c ? ' · <span class="qa-contact">' + bi(MEDIA.contact) + " " + esc(c) + "</span>" : "";
   }
 
+  /* ---------- forum identity: one random dreamy name per device (or anonymous), never typed in ---------- */
+  var NICK_A = ["雾紫", "月白", "星屑", "晚樱", "薄荷", "微光", "云朵", "琥珀", "晴空", "蜜桃", "海盐", "雪松",
+                "银河", "晨露", "落日", "青柠", "软糖", "萤火", "雨后", "初雪", "柚子", "梦游", "暖橘", "风信"];
+  var NICK_B = ["小灯", "小屋", "信笺", "纸鹤", "风铃", "蜡烛", "枕头", "鲸鱼", "兔子", "猫咪", "星星", "月亮",
+                "气球", "灯塔", "汽水", "花瓣", "邮筒", "毛毯", "旋木", "蒲公英", "小船", "钥匙", "茶杯", "布丁"];
+  var NICK_RE = /^[\u4e00-\u9fff]{2,8}#\d{4}$/;
+  function randInt(n) {
+    if (window.crypto && crypto.getRandomValues) { var a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; }
+    return Math.floor(Math.random() * n);
+  }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function myNick() {
+    var n = lsGet("loveshed-nick");
+    if (!n || !NICK_RE.test(n)) {
+      n = NICK_A[randInt(NICK_A.length)] + NICK_B[randInt(NICK_B.length)] + "#" + ("000" + randInt(10000)).slice(-4);
+      lsSet("loveshed-nick", n);
+    }
+    return n;
+  }
+  // a random, stable id for this browser; sent with posts so the keeper can tell one poster from another (never published)
+  function myDevice() {
+    var d = lsGet("loveshed-device");
+    if (!d || !/^[A-Za-z0-9_-]{16,64}$/.test(d)) {
+      var abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+      d = ""; for (var i = 0; i < 22; i++) d += abc[randInt(64)];
+      lsSet("loveshed-device", d);
+    }
+    return d;
+  }
+  // delete tokens handed back by the inbox: {item_id: token}; a question's token makes you its thread owner
+  function myTokens() { try { var t = JSON.parse(lsGet("loveshed-tokens") || "{}"); return t && typeof t === "object" ? t : {}; } catch (e) { return {}; } }
+  function saveToken(id, tok) { if (!id || !tok) return; var t = myTokens(); t[id] = tok; lsSet("loveshed-tokens", JSON.stringify(t)); }
+  function hashText(str) { var h = 5381; for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h); }
+  function qaLink(id) { return "qa.html?id=" + encodeURIComponent(id); }
+
   function loadQA(fresh) {
     // fresh: bypass the CDN copy (Pages caches qa.json for a few minutes) right after posting an answer
     return fetch("qa.json" + (fresh ? "?t=" + Date.now() : ""), { cache: "no-cache" }).then(function (r) {
@@ -576,8 +612,15 @@
       var LINK_INPUTS = ["link1", "link2", "link3"];
       var qaTitles = {};
       function fType() { return form.elements.type.value || "tip"; }
+      function paintNick() {
+        var el = form.querySelector(".tf-nick");
+        if (el) el.textContent = form.elements.anon.checked ? (root.getAttribute("data-lang") === "zh" ? "匿名姐妹" : "Anonymous sister") : myNick();
+      }
+      form.elements.anon.addEventListener("change", paintNick);
+      langHooks.push(paintNick);
       function applyType() {
         var t = fType();
+        if (t === "question" || t === "answer") paintNick();
         form.setAttribute("data-type", t);
         form.querySelectorAll("[data-types]").forEach(function (el) {
           el.hidden = el.getAttribute("data-types").split(" ").indexOf(t) < 0;
@@ -670,6 +713,8 @@
         TYPE_FIELDS[t].concat(["website"]).forEach(function (k) {
           d[k] = (form.elements[k].value || "").trim();
         });
+        d.device_id = myDevice();
+        if (t === "question" || t === "answer") d.nickname = form.elements.anon.checked ? "" : myNick();
         form.querySelectorAll(".bad").forEach(function (el) { el.classList.remove("bad"); });
         d.media_links = [];
         for (var li = 0; t !== "answer" && li < LINK_INPUTS.length; li++) {
@@ -704,6 +749,7 @@
           if (res.status === 201 && res.j.ok) {
             store("loveshed-tip-last-at", String(Date.now()));
             store("loveshed-tip-last-hash", h);
+            saveToken(res.j.item_id, res.j.token);
             if (t === "question" || t === "answer") addMine({
               type: t, at: new Date().toISOString(), title: d.title || "",
               excerpt: d.body.slice(0, 140), question_id: d.question_id || "",
@@ -711,7 +757,7 @@
             });
             form.classList.add("sent");
             if (t === "question") say("ok", MSG.okQ, null, "qa.html");
-            else if (t === "answer") say("ok", MSG.okA, null, "qa.html#" + encodeURIComponent(d.question_id));
+            else if (t === "answer") say("ok", MSG.okA, null, qaLink(d.question_id));
             else say("ok", MSG.ok);
             ["title", "body", "duration", "pitfalls"].concat(LINK_INPUTS).forEach(function (k) { form.elements[k].value = ""; });
             bodyCount.textContent = "0 / 5000";
@@ -742,34 +788,55 @@
       });
       form.addEventListener("input", function () { form.classList.remove("sent"); });
     }
-
-    /* ---------- Q&A forum (qa.html; docs/qa.json, reviewed entries only) ---------- */
+    /* ---------- Q&A forum (qa.html): list of posts, and one thread per ?id= ---------- */
     function initForum() {
       var qaList = document.getElementById("qa-list");
       if (!qaList) return;
+      var board = document.getElementById("qa"), thread = document.getElementById("qa-thread");
       var QA = {
         anon:    { zh: "匿名姐妹", en: "Anonymous sister" },
         keeper:  { zh: "掌柜", en: "Keeper" },
-        answer:  { zh: "我来回答", en: "I'll answer" },
+        back:    { zh: "← 全部问题", en: "← All questions" },
+        noAns:   { zh: "还没有回答，等掌柜和姐妹们来接。", en: "No answers yet — waiting for the keeper and the sisters." },
+        ans:     { zh: "回答", en: "answers" },
+        ans1:    { zh: "回答", en: "answer" },
+        nAns:    { zh: " 条回答", en: " answers" },
+        fail:    { zh: "提问区暂时没加载出来，过会儿刷新试试。", en: "Q&A didn't load — try reloading in a bit." },
+        missing: { zh: "这个问题找不到了，可能已经下架。", en: "This question can't be found — it may have been taken down." },
+        answer:  { zh: "我来回答", en: "Your answer" },
         ph:      { zh: "你遇到过吗？怎么过来的？像跟姐妹讲就好。仅限纯文字。", en: "Been there? How did you get through? Like telling a friend. Plain text only." },
-        nick:    { zh: "昵称（可空 = 匿名姐妹）", en: "Name (blank = anonymous sister)" },
+        as:      { zh: "以 ", en: "Posting as " },
+        asTail:  { zh: " 发布", en: "" },
+        anonBox: { zh: "这次匿名", en: "Anonymous this time" },
         post:    { zh: "直接发布", en: "Post now" },
         posting: { zh: "发布中…", en: "Posting…" },
         posted:  { zh: "已发布 ✓", en: "Posted ✓" },
-        rule:    { zh: "回答仅限纯文字，无需审核，发布后立即可见。", en: "Plain text only, no review — visible right after you post." },
-        okMsg:   { zh: "已发布，马上就能看到～ 一会儿会自动刷新这里。", en: "Posted — it'll show up in a moment. This list refreshes by itself shortly." },
+        rule:    { zh: "回答仅限纯文字，无需审核，发布后立即可见。昵称是随机的，同一台设备一直用同一个。", en: "Plain text only, no review — visible right after you post. Your name is random and stays the same on this device." },
+        okMsg:   { zh: "已发布，马上就能看到～ 一会儿会自动刷新这里。", en: "Posted — it'll show up in a moment. This page refreshes by itself shortly." },
         refresh: { zh: "刷新看看", en: "Refresh" },
         need:    { zh: "回答还空着呢。", en: "The answer is still empty." },
         textOnly:{ zh: "回答仅限纯文字：请去掉网址、链接或邮箱（像 xxx.com 这样的也算）。", en: "Plain text only — please remove web addresses, links or emails (things like xxx.com count too)." },
         wait:    { zh: "稍等一下再发～", en: "Give it a moment before posting again." },
         dup:     { zh: "这条刚刚已经发过了。", en: "You just posted this one." },
         gone:    { zh: "这个问题暂时不能回答了，刷新页面看看。", en: "This question can't take answers right now — try reloading." },
+        goneR:   { zh: "要回复的那条回答不在了，刷新看看。", en: "The answer you're replying to is gone — try reloading." },
         down:    { zh: "暂时没发出去，内容还在框里，过会儿再试试。", en: "Couldn't post just now — your text is still here, try again in a bit." },
-        noAns:   { zh: "还没有回答，等掌柜和姐妹们来接。", en: "No answers yet — waiting for the keeper and the sisters." },
-        ans:     { zh: "回答", en: "answers" },
-        ans1:    { zh: "回答", en: "answer" },
-        fail:    { zh: "提问区暂时没加载出来，过会儿刷新试试。", en: "Q&A didn't load — try reloading in a bit." }
+        reply:   { zh: "回复", en: "Reply" },
+        replyTo: { zh: "回复 ", en: "Replying to " },
+        replyGone:{ zh: "回复一条已删除的回答", en: "Reply to a removed answer" },
+        cancel:  { zh: "取消", en: "Cancel" },
+        del:     { zh: "删除", en: "Delete" },
+        delSure: { zh: "确认删除？", en: "Delete it?" },
+        deleting:{ zh: "删除中…", en: "Deleting…" },
+        deleted: { zh: "这条回答已删除。", en: "This answer was deleted." },
+        report:  { zh: "举报", en: "Report" },
+        reported:{ zh: "已举报", en: "Reported" },
+        repPh:   { zh: "可以写一句原因（可空）", en: "A word on why (optional)" },
+        repSend: { zh: "提交举报", en: "Send report" },
+        repOk:   { zh: "收到了，掌柜会看的。举报不会直接删掉内容。", en: "Got it — the keeper will take a look. A report doesn't remove anything by itself." },
+        actFail: { zh: "没成功，过会儿再试试。", en: "That didn't work — try again in a bit." }
       };
+      var REPORTED = "loveshed-reported", HIDDEN = "loveshed-hidden";
       function para(text) {
         return text.split(/\n{2,}/).map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("");
       }
@@ -779,171 +846,313 @@
       function who(a) {
         return a.role === "keeper" ? bi(QA.keeper) : a.nickname ? '<span class="qa-nick">' + esc(a.nickname) + "</span>" : bi(QA.anon);
       }
-      function answersHtml(q) {
-        var as = q.answers || [];
-        if (!as.length) return '<p class="qa-none">' + bi(QA.noAns) + "</p>";
-        return '<ol class="qa-answers">' + as.map(function (a) {
-          return '<li class="qa-a' + (a.role === "keeper" ? " keeper" : "") + '"><p class="qa-by">' + who(a) +
-                 contactHtml(a.contact) + " · " + when(a.answered, a.answered_at) + "</p>" + para(a.body || "") + mediaHtml(a.media_links) + "</li>";
-        }).join("") + "</ol>";
+      function whoText(a) {
+        return a.role === "keeper" ? QA.keeper[root.getAttribute("data-lang")] : a.nickname || QA.anon[root.getAttribute("data-lang")];
       }
       function badgeHtml(n) {
         return "<b>" + n + "</b><small>" + bi(n === 1 ? QA.ans1 : QA.ans) + "</small>";
       }
-      function replyForm(q) {
-        return (
-          '<form class="qa-form" data-qid="' + esc(q.id) + '" novalidate>' +
-            '<label class="qa-f-l"><span aria-hidden="true">✎</span> ' + bi(QA.answer) + "</label>" +
-            '<textarea name="body" rows="3" maxlength="5000" data-ph-zh="' + esc(QA.ph.zh) + '" data-ph-en="' + esc(QA.ph.en) + '" aria-label="' + esc(QA.answer.zh + " / " + QA.answer.en) + '"></textarea>' +
-            '<div class="qa-f-row">' +
-              '<input name="nickname" maxlength="40" autocomplete="nickname" data-ph-zh="' + esc(QA.nick.zh) + '" data-ph-en="' + esc(QA.nick.en) + '" aria-label="' + esc(QA.nick.zh + " / " + QA.nick.en) + '">' +
-              '<button class="btn primary qa-post" type="submit">' + bi(QA.post) + "</button>" +
-            "</div>" +
-            '<div class="tf-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>' +
-            '<p class="qa-f-rule">' + bi(QA.rule) + "</p>" +
-            '<p class="qa-f-status" role="status" aria-live="polite"></p>' +
-          "</form>"
-        );
+      function hidden() { return readList(HIDDEN); }
+      function liveAnswers(q) {
+        var h = hidden();
+        return (q.answers || []).filter(function (a) { return h.indexOf(a.id) < 0; }).slice().sort(function (x, y) {
+          var a = (x.answered_at || x.answered || "") + (x.id || ""), b = (y.answered_at || y.answered || "") + (y.id || "");
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
       }
-      function item(q) {
-        var as = q.answers || [], n = as.length, id = esc(q.id);
+
+      // old deep links (qa.html#q-…) open the thread
+      if (/^#q-/.test(location.hash)) {
+        location.replace(qaLink(decodeURIComponent(location.hash.slice(1))));
+        return;
+      }
+      var P = params();
+      if (P.id) return openThread(P.id);
+
+      /* ----- list: posts only; the whole card opens the thread ----- */
+      function card(q) {
+        var n = liveAnswers(q).length, id = esc(q.id);
         return (
           '<li class="qa-q" id="' + id + '">' +
             starBtn("q", q.id, "fav-q") +
-            '<h2 class="qa-h"><button type="button" class="qa-head" aria-expanded="false" aria-controls="d-' + id + '">' +
+            '<a class="qa-head" href="' + qaLink(q.id) + '">' +
               '<span class="qa-title">' + esc(q.title) + "</span>" +
-              '<span class="qa-by">' + bi(QA.anon) + contactHtml(q.contact) + " · " + when(q.asked, q.asked_at) + "</span>" +
+              '<span class="qa-by">' + who(q) + contactHtml(q.contact) + " · " + when(q.asked, q.asked_at) + "</span>" +
               '<span class="qa-badge' + (n ? "" : " zero") + '">' + badgeHtml(n) + "</span>" +
-            "</button></h2>" +
-            '<div class="qa-detail" id="d-' + id + '" hidden>' +
-              '<div class="qa-body">' + para(q.body || "") + "</div>" + mediaHtml(q.media_links) +
-              '<div class="qa-ans-wrap">' + answersHtml(q) + "</div>" +
-              replyForm(q) +
-            "</div>" +
+            "</a>" +
           "</li>"
         );
       }
-      function toggle(li, on, scroll, quiet) {
-        var b = li.querySelector(".qa-head");
-        if (on === undefined) on = b.getAttribute("aria-expanded") !== "true";
-        b.setAttribute("aria-expanded", on ? "true" : "false");
-        li.classList.toggle("open", on);
-        li.querySelector(".qa-detail").hidden = !on;
-        if (!quiet && history.replaceState) history.replaceState(null, "", on ? "#" + li.id : location.pathname + location.search);
-        if (scroll) li.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-      function placeholders(l) {
-        qaList.querySelectorAll(".qa-form [data-ph-zh]").forEach(function (el) { el.placeholder = el.getAttribute("data-ph-" + l); });
-      }
-      langHooks.push(placeholders);
-      var byId = {};
       loadQA().then(function (qs) {
-        qs.forEach(function (q) { byId[q.id] = q; });
-        qaList.innerHTML = qs.map(item).join("");
-        placeholders(root.getAttribute("data-lang"));
+        qaList.innerHTML = qs.map(card).join("");
         document.querySelector(".qa-empty").hidden = qs.length > 0;
         document.querySelector(".forum-count").innerHTML = bi({ zh: "共 " + qs.length + " 个问题", en: qs.length + (qs.length === 1 ? " question" : " questions") });
-        var h = decodeURIComponent(location.hash.slice(1));
-        var hit = h && document.getElementById(h);
-        if (hit && hit.classList.contains("qa-q")) toggle(hit, true, true);
-        else if (qs.length === 1) toggle(qaList.firstChild, true, false, true);
       }).catch(function () {
         qaList.innerHTML = '<li class="qa-fail">' + bi(QA.fail) + "</li>";
       });
-      /* ---------- answer in place: type=answer to the same inbox, text only, no review ---------- */
-      function refreshAnswers(qid, li) {
-        return loadQA(true).then(function (qs) {
+      qaList.addEventListener("click", function (e) {
+        var fv = e.target.closest("button[data-fav]");
+        if (!fv) return;
+        var li = fv.closest(".qa-q"), on = fv.getAttribute("aria-pressed") !== "true";
+        setFav("q", li.id, li.querySelector(".qa-title").textContent, on); paintStar(fv, on);
+      });
+
+      /* ----- thread: the question, every answer in time order, and the answer box at the bottom ----- */
+      function openThread(qid) {
+        board.hidden = true; thread.hidden = false;
+        var current = null, replyTo = "";
+        function answerHtml(a, q, byId) {
+          var toks = myTokens(), mine = !!toks[a.id], owner = !!toks[q.id];
+          var reported = readList(REPORTED).indexOf(a.id) >= 0;
+          var quote = "";
+          if (a.reply_to) {
+            var t = byId[a.reply_to];
+            quote = t ? '<a class="qa-quote" href="#' + esc(t.id) + '"><span class="qa-quote-who">' + bi(QA.replyTo) + "@" + esc(whoText(t)) + "</span>" +
+                        '<span class="qa-quote-ex">' + esc((t.body || "").replace(/\s+/g, " ").slice(0, 60)) + "</span></a>"
+                      : '<p class="qa-quote gone">' + bi(QA.replyGone) + "</p>";
+          }
+          var acts = '<button type="button" class="qa-act" data-act="reply">' + bi(QA.reply) + "</button>";
+          if (a.id && (mine || owner) && a.role !== "keeper") acts += '<button type="button" class="qa-act del" data-act="delete">' + bi(QA.del) + "</button>";
+          else if (a.id && a.role !== "keeper") acts += '<button type="button" class="qa-act rep" data-act="report"' + (reported ? " disabled" : "") + ">" + bi(reported ? QA.reported : QA.report) + "</button>";
+          return (
+            '<li class="qa-a' + (a.role === "keeper" ? " keeper" : "") + (a.reply_to ? " is-reply" : "") + (mine ? " mine" : "") + '" id="' + esc(a.id || "") + '" data-aid="' + esc(a.id || "") + '">' +
+              quote +
+              '<p class="qa-by">' + who(a) + contactHtml(a.contact) + " · " + when(a.answered, a.answered_at) + "</p>" +
+              para(a.body || "") + mediaHtml(a.media_links) +
+              '<div class="qa-acts">' + acts + "</div>" +
+              '<form class="qa-report" hidden novalidate>' +
+                '<input name="reason" maxlength="200" data-ph-zh="' + esc(QA.repPh.zh) + '" data-ph-en="' + esc(QA.repPh.en) + '" aria-label="' + esc(QA.repPh.zh + " / " + QA.repPh.en) + '">' +
+                '<button type="submit" class="qa-act">' + bi(QA.repSend) + "</button>" +
+                '<button type="button" class="qa-act" data-act="report-cancel">' + bi(QA.cancel) + "</button>" +
+              "</form>" +
+              '<p class="qa-act-msg" role="status"></p>' +
+            "</li>"
+          );
+        }
+        function answersHtml(q) {
+          var as = liveAnswers(q), byId = {};
+          as.forEach(function (a) { if (a.id) byId[a.id] = a; });
+          if (!as.length) return '<p class="qa-none">' + bi(QA.noAns) + "</p>";
+          return '<ol class="qa-answers">' + as.map(function (a) { return answerHtml(a, q, byId); }).join("") + "</ol>";
+        }
+        function countHtml(q) {
+          var n = liveAnswers(q).length;
+          return n + "<span class=\"zh\">" + QA.nAns.zh + "</span><span class=\"en\">" + (n === 1 ? " answer" : QA.nAns.en) + "</span>";
+        }
+        function formHtml() {
+          return (
+            '<form class="qa-form" novalidate>' +
+              '<label class="qa-f-l" for="qa-body"><span aria-hidden="true">✎</span> ' + bi(QA.answer) + "</label>" +
+              '<p class="qa-f-reply" hidden><span class="qa-f-reply-who"></span> <button type="button" class="qa-f-unreply" aria-label="cancel">×</button></p>' +
+              '<textarea id="qa-body" name="body" rows="4" maxlength="5000" data-ph-zh="' + esc(QA.ph.zh) + '" data-ph-en="' + esc(QA.ph.en) + '"></textarea>' +
+              '<div class="qa-f-row">' +
+                '<span class="qa-f-id">' + bi(QA.as) + '<b class="qa-f-nick"></b>' + bi(QA.asTail) + "</span>" +
+                '<label class="qa-f-anon"><input type="checkbox" name="anon"> ' + bi(QA.anonBox) + "</label>" +
+                '<button class="btn primary qa-post" type="submit">' + bi(QA.post) + "</button>" +
+              "</div>" +
+              '<div class="tf-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>' +
+              '<p class="qa-f-rule">' + bi(QA.rule) + "</p>" +
+              '<p class="qa-f-status" role="status" aria-live="polite"></p>' +
+            "</form>"
+          );
+        }
+        function placeholders(l) {
+          thread.querySelectorAll("[data-ph-zh]").forEach(function (el) { el.placeholder = el.getAttribute("data-ph-" + l); });
+        }
+        langHooks.push(placeholders);
+        function paintIdentity() {
+          var f = thread.querySelector(".qa-form");
+          if (!f) return;
+          var anon = f.elements.anon.checked;
+          f.querySelector(".qa-f-nick").textContent = anon ? QA.anon[root.getAttribute("data-lang")] : myNick();
+          f.classList.toggle("is-anon", anon);
+        }
+        langHooks.push(paintIdentity);
+        function render(q) {
+          current = q;
+          document.title = q.title + " · loveshed";
+          thread.innerHTML =
+            '<div class="qa-t-top"><a class="qa-back" href="qa.html">' + bi(QA.back) + "</a>" + starBtn("q", q.id, "fav-t") + "</div>" +
+            '<article class="qa-t-q">' +
+              '<h1 class="qa-t-title">' + esc(q.title) + "</h1>" +
+              '<p class="qa-by">' + who(q) + contactHtml(q.contact) + " · " + when(q.asked, q.asked_at) + "</p>" +
+              '<div class="qa-body">' + para(q.body || "") + "</div>" + mediaHtml(q.media_links) +
+            "</article>" +
+            '<h2 class="qa-t-count">' + countHtml(q) + "</h2>" +
+            '<div class="qa-ans-wrap">' + answersHtml(q) + "</div>" +
+            formHtml();
+          placeholders(root.getAttribute("data-lang"));
+          paintIdentity();
+          var target = location.hash && document.getElementById(location.hash.slice(1));
+          if (target && target.classList.contains("qa-a")) { target.classList.add("hl"); setTimeout(function () { target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150); }
+        }
+        function repaintAnswers() {
+          thread.querySelector(".qa-ans-wrap").innerHTML = answersHtml(current);
+          thread.querySelector(".qa-t-count").innerHTML = countHtml(current);
+          placeholders(root.getAttribute("data-lang"));
+        }
+        function refresh() {
+          return loadQA(true).then(function (qs) {
+            var q = qs.filter(function (x) { return x.id === qid; })[0];
+            if (!q) return false;
+            // forget local "deleted" marks once the board itself no longer has them
+            var ids = (q.answers || []).map(function (a) { return a.id; });
+            writeList(HIDDEN, hidden().filter(function (h) { return ids.indexOf(h) >= 0; }));
+            current = q; repaintAnswers();
+            return true;
+          }).catch(function () { return false; });
+        }
+        loadQA().then(function (qs) {
           var q = qs.filter(function (x) { return x.id === qid; })[0];
-          if (!q) return false;
-          byId[qid] = q;
-          li.querySelector(".qa-ans-wrap").innerHTML = answersHtml(q);
-          var bd = li.querySelector(".qa-badge");
-          bd.innerHTML = badgeHtml((q.answers || []).length);
-          bd.classList.toggle("zero", !(q.answers || []).length);
-          return true;
-        }).catch(function () { return false; });
-      }
-      function fstore(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
-      function fhash(str) { var h = 5381; for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h); }
-      qaList.addEventListener("submit", function (e) {
-        var f = e.target.closest(".qa-form");
-        if (!f) return;
-        e.preventDefault();
-        if (f.getAttribute("data-busy")) return;
-        var li = f.closest(".qa-q"), qid = f.getAttribute("data-qid");
-        var st = f.querySelector(".qa-f-status"), btn = f.querySelector(".qa-post"), ta = f.elements.body;
-        function say(kind, msg, extra) { st.className = "qa-f-status " + kind; st.innerHTML = bi(msg) + (extra || ""); }
-        var body = (ta.value || "").trim(), nick = (f.elements.nickname.value || "").trim();
-        ta.classList.remove("bad"); f.elements.nickname.classList.remove("bad");
-        if (!body) { ta.classList.add("bad"); return say("err", QA.need); }
-        if (ANSWER_LINK_RE.test(body)) { ta.classList.add("bad"); return say("err", QA.textOnly); }
-        if (ANSWER_LINK_RE.test(nick)) { f.elements.nickname.classList.add("bad"); return say("err", QA.textOnly); }
-        var h = fhash("answer\n" + qid + "\n\n" + body + "\n");
-        if (fstore("loveshed-tip-last-hash") === h) return say("err", QA.dup);
-        if (Date.now() - (+fstore("loveshed-tip-last-at") || 0) < 60 * 1000) return say("err", QA.wait);
-        f.setAttribute("data-busy", "1"); btn.disabled = true; btn.innerHTML = bi(QA.posting); say("", { zh: "", en: "" });
-        var d = { type: "answer", question_id: qid, body: body, nickname: nick, contact: "", contact_visibility: "private",
-                  media_links: [], website: (f.elements.website.value || "").trim() };
-        var ctl = "AbortController" in window ? new AbortController() : null;
-        var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
-        var ok = false;
-        fetch(INTAKE, {
-          method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
-          headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), signal: ctl ? ctl.signal : undefined
-        }).then(function (r) {
-          return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; });
-        }).then(function (res) {
-          if (res.status === 201 && res.j.ok) {
-            ok = true;
-            fstore("loveshed-tip-last-at", String(Date.now())); fstore("loveshed-tip-last-hash", h);
-            addMine({ type: "answer", at: new Date().toISOString(), title: "", excerpt: body.slice(0, 140),
-                      question_id: qid, question_title: (byId[qid] || {}).title || "" });
-            ta.value = "";
-            btn.innerHTML = bi(QA.posted); f.classList.add("posted");
-            say("ok", QA.okMsg, ' <button type="button" class="qa-refresh">' + bi(QA.refresh) + "</button>");
-            // the answer goes live within a minute or so; look again a couple of times
-            [35000, 75000].forEach(function (ms) { setTimeout(function () { refreshAnswers(qid, li); }, ms); });
+          if (!q) {
+            thread.innerHTML = '<div class="qa-t-top"><a class="qa-back" href="qa.html">' + bi(QA.back) + '</a></div><p class="qa-fail">' + bi(QA.missing) + "</p>";
             return;
           }
-          if (res.status === 429) return say("err", QA.wait);
-          if (res.status === 400 && (res.j.reason === "links_not_allowed" || res.j.reason === "answers_text_only")) {
-            (res.j.field === "nickname" ? f.elements.nickname : ta).classList.add("bad");
-            return say("err", QA.textOnly);
-          }
-          if (res.status === 400 && res.j.field === "question_id") return say("err", QA.gone);
-          say("err", QA.down);
+          render(q);
         }).catch(function () {
-          say("err", QA.down);
-        }).then(function () {
-          clearTimeout(timer);
-          setTimeout(function () {
-            f.removeAttribute("data-busy"); btn.disabled = false;
-            if (!ok) btn.innerHTML = bi(QA.post);
-          }, ok ? 4000 : 1200);
+          thread.innerHTML = '<div class="qa-t-top"><a class="qa-back" href="qa.html">' + bi(QA.back) + '</a></div><p class="qa-fail">' + bi(QA.fail) + "</p>";
         });
-      });
-      qaList.addEventListener("input", function (e) {
-        var f = e.target.closest(".qa-form");
-        if (f && f.classList.contains("posted") && !f.getAttribute("data-busy")) {
-          f.classList.remove("posted"); f.querySelector(".qa-post").innerHTML = bi(QA.post);
+
+        function post(d) {
+          var ctl = "AbortController" in window ? new AbortController() : null;
+          var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
+          return fetch(INTAKE, {
+            method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), signal: ctl ? ctl.signal : undefined
+          }).then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (j) { clearTimeout(timer); return { status: r.status, j: j }; });
+          }, function (e) { clearTimeout(timer); throw e; });
         }
-      });
-      qaList.addEventListener("click", function (e) {
-        var rf = e.target.closest(".qa-refresh");
-        if (rf) {
-          rf.disabled = true;
-          refreshAnswers(rf.closest(".qa-form").getAttribute("data-qid"), rf.closest(".qa-q")).then(function () { rf.disabled = false; });
-          return;
+        function setReply(aid) {
+          var f = thread.querySelector(".qa-form"), box = f.querySelector(".qa-f-reply");
+          replyTo = aid || "";
+          if (replyTo) {
+            var a = (current.answers || []).filter(function (x) { return x.id === replyTo; })[0];
+            box.querySelector(".qa-f-reply-who").innerHTML = bi(QA.replyTo) + "@" + esc(a ? whoText(a) : "");
+          }
+          box.hidden = !replyTo;
         }
-        var fv = e.target.closest("button[data-fav]");
-        if (fv) {
-          var li = fv.closest(".qa-q"), on = fv.getAttribute("aria-pressed") !== "true";
-          setFav("q", li.id, li.querySelector(".qa-title").textContent, on); paintStar(fv, on);
-          return;
+
+        thread.addEventListener("change", function (e) { if (e.target.name === "anon") paintIdentity(); });
+        thread.addEventListener("click", function (e) {
+          var fv = e.target.closest("button[data-fav]");
+          if (fv) { var on = fv.getAttribute("aria-pressed") !== "true"; setFav("q", current.id, current.title, on); paintStar(fv, on); return; }
+          if (e.target.closest(".qa-f-unreply")) { setReply(""); return; }
+          if (e.target.closest(".qa-refresh")) { var rb = e.target.closest(".qa-refresh"); rb.disabled = true; refresh().then(function () { rb.disabled = false; }); return; }
+          var b = e.target.closest("button[data-act]");
+          if (!b) return;
+          var li = b.closest(".qa-a"), aid = li && li.getAttribute("data-aid"), act = b.getAttribute("data-act");
+          var msg = li && li.querySelector(".qa-act-msg");
+          function say(kind, m) { msg.className = "qa-act-msg " + kind; msg.innerHTML = bi(m); }
+          if (act === "reply") {
+            setReply(aid);
+            var f = thread.querySelector(".qa-form");
+            f.scrollIntoView({ behavior: "smooth", block: "center" });
+            setTimeout(function () { f.elements.body.focus({ preventScroll: true }); }, 350);
+          } else if (act === "report") {
+            li.querySelector(".qa-report").hidden = false;
+            li.querySelector(".qa-report input").focus();
+          } else if (act === "report-cancel") {
+            li.querySelector(".qa-report").hidden = true;
+          } else if (act === "delete") {
+            // in-page two-step confirm (no window.confirm: home-screen shells don't always show it)
+            if (!b.classList.contains("arm")) {
+              b.classList.add("arm"); b.innerHTML = bi(QA.delSure);
+              setTimeout(function () { if (b.isConnected && !b.disabled) { b.classList.remove("arm"); b.innerHTML = bi(QA.del); } }, 4000);
+              return;
+            }
+            var toks = myTokens(), tok = toks[aid] || toks[current.id];
+            if (!tok) return;
+            b.disabled = true; b.innerHTML = bi(QA.deleting);
+            post({ type: "delete", item_id: aid, token: tok, device_id: myDevice() }).then(function (res) {
+              if (res.status === 202 && res.j.ok) {
+                var h = hidden(); if (h.indexOf(aid) < 0) h.push(aid); writeList(HIDDEN, h);
+                li.classList.add("gone"); li.innerHTML = '<p class="qa-none">' + bi(QA.deleted) + "</p>";
+                thread.querySelector(".qa-t-count").innerHTML = countHtml(current);
+                setTimeout(refresh, 75000);
+                return;
+              }
+              b.disabled = false; b.classList.remove("arm"); b.innerHTML = bi(QA.del);
+              say("err", res.status === 429 ? QA.wait : QA.actFail);
+            }).catch(function () { b.disabled = false; b.classList.remove("arm"); b.innerHTML = bi(QA.del); say("err", QA.actFail); });
+          }
+        });
+
+        thread.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var rf = e.target.closest(".qa-report");
+          if (rf) return sendReport(rf);
+          var f = e.target.closest(".qa-form");
+          if (f) sendAnswer(f);
+        });
+        function sendReport(rf) {
+          var li = rf.closest(".qa-a"), aid = li.getAttribute("data-aid"), btn = rf.querySelector("button[type=submit]");
+          var msg = li.querySelector(".qa-act-msg");
+          var reason = (rf.elements.reason.value || "").trim();
+          if (/[<>]/.test(reason)) reason = reason.replace(/[<>]/g, "");
+          btn.disabled = true;
+          post({ type: "report", item_id: aid, reason: reason, device_id: myDevice() }).then(function (res) {
+            if ((res.status === 201 || res.status === 200) && res.j.ok) {
+              var r = readList(REPORTED); if (r.indexOf(aid) < 0) r.push(aid); writeList(REPORTED, r);
+              rf.hidden = true;
+              var rb = li.querySelector('[data-act="report"]'); rb.disabled = true; rb.innerHTML = bi(QA.reported);
+              msg.className = "qa-act-msg ok"; msg.innerHTML = bi(QA.repOk);
+              return;
+            }
+            btn.disabled = false;
+            msg.className = "qa-act-msg err"; msg.innerHTML = bi(res.status === 429 ? QA.wait : QA.actFail);
+          }).catch(function () { btn.disabled = false; msg.className = "qa-act-msg err"; msg.innerHTML = bi(QA.actFail); });
         }
-        var b = e.target.closest(".qa-head");
-        if (b) toggle(b.closest(".qa-q"));
-      });
+        function sendAnswer(f) {
+          if (f.getAttribute("data-busy")) return;
+          var st = f.querySelector(".qa-f-status"), btn = f.querySelector(".qa-post"), ta = f.elements.body;
+          function say(kind, m, extra) { st.className = "qa-f-status " + kind; st.innerHTML = bi(m) + (extra || ""); }
+          var body = (ta.value || "").trim();
+          ta.classList.remove("bad");
+          if (!body) { ta.classList.add("bad"); return say("err", QA.need); }
+          if (ANSWER_LINK_RE.test(body)) { ta.classList.add("bad"); return say("err", QA.textOnly); }
+          var h = hashText("answer\n" + qid + "\n\n" + body + "\n");
+          if (lsGet("loveshed-tip-last-hash") === h) return say("err", QA.dup);
+          if (Date.now() - (+lsGet("loveshed-tip-last-at") || 0) < 60 * 1000) return say("err", QA.wait);
+          f.setAttribute("data-busy", "1"); btn.disabled = true; btn.innerHTML = bi(QA.posting); say("", { zh: "", en: "" });
+          var anon = f.elements.anon.checked, rt = replyTo, ok = false;
+          var d = { type: "answer", question_id: qid, body: body, nickname: anon ? "" : myNick(), reply_to: rt,
+                    device_id: myDevice(), contact: "", contact_visibility: "private", media_links: [],
+                    website: (f.elements.website.value || "").trim() };
+          post(d).then(function (res) {
+            if (res.status === 201 && res.j.ok) {
+              ok = true;
+              lsSet("loveshed-tip-last-at", String(Date.now())); lsSet("loveshed-tip-last-hash", h);
+              saveToken(res.j.item_id, res.j.token);
+              addMine({ type: "answer", at: new Date().toISOString(), title: "", excerpt: body.slice(0, 140),
+                        question_id: qid, question_title: current.title });
+              ta.value = ""; setReply("");
+              btn.innerHTML = bi(QA.posted); f.classList.add("posted");
+              say("ok", QA.okMsg, ' <button type="button" class="qa-refresh">' + bi(QA.refresh) + "</button>");
+              [35000, 75000].forEach(function (ms) { setTimeout(refresh, ms); });
+              return;
+            }
+            if (res.status === 429) return say("err", QA.wait);
+            if (res.status === 400 && (res.j.reason === "links_not_allowed" || res.j.reason === "answers_text_only")) { ta.classList.add("bad"); return say("err", QA.textOnly); }
+            if (res.status === 400 && res.j.field === "reply_to") return say("err", QA.goneR);
+            if (res.status === 400 && res.j.field === "question_id") return say("err", QA.gone);
+            say("err", QA.down);
+          }).catch(function () {
+            say("err", QA.down);
+          }).then(function () {
+            setTimeout(function () {
+              f.removeAttribute("data-busy"); btn.disabled = false;
+              if (!ok) btn.innerHTML = bi(QA.post);
+            }, ok ? 4000 : 1200);
+          });
+        }
+        thread.addEventListener("input", function (e) {
+          var f = e.target.closest(".qa-form");
+          if (f && f.classList.contains("posted") && !f.getAttribute("data-busy")) {
+            f.classList.remove("posted"); f.querySelector(".qa-post").innerHTML = bi(QA.post);
+          }
+        });
+      }
     }
 
     /* ---------- "Mine" (mine.html) ---------- */
@@ -969,7 +1178,7 @@
       function renderFavs() {
         var favs = readList(FAV_KEY);
         favEl.innerHTML = favs.map(function (f) {
-          var href = f.kind === "skill" ? "./#skill-" + encodeURIComponent(f.id) : "qa.html#" + encodeURIComponent(f.id);
+          var href = f.kind === "skill" ? "./#skill-" + encodeURIComponent(f.id) : qaLink(f.id);
           return '<li class="mine-item">' +
             '<a class="mine-link" href="' + href + '">' +
               '<span class="mine-tag">' + bi(f.kind === "skill" ? M.skill : M.q) + "</span>" +
@@ -997,11 +1206,11 @@
             var href = "", state = checking ? "checking" : qs ? "pending" : "unknown";
             if (type === "question") {
               var hit = byTitle[(r.title || "").trim()];
-              if (hit) { href = "qa.html#" + encodeURIComponent(hit.id); state = "live"; }
+              if (hit) { href = qaLink(hit.id); state = "live"; }
             } else {
               var q = byId[r.question_id];
               if (q) {
-                href = "qa.html#" + encodeURIComponent(q.id);
+                href = qaLink(q.id);
                 var ex = (r.excerpt || "").trim();
                 if (ex && (q.answers || []).some(function (a) { return (a.body || "").trim().indexOf(ex) === 0; })) state = "live";
               }
