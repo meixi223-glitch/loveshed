@@ -554,7 +554,8 @@
         gh:      { zh: "改用 GitHub issue 投稿 ↗", en: "submit it as a GitHub issue instead ↗" },
         newCard: { zh: "新的一招（还没有对应的卡）", en: "Something new (no card yet)" },
         okQ:     { zh: "问题已进审核队列，通过后会出现在提问区。谢谢你来问！", en: "Your question is in the review queue and will show up in Q&A once approved. Thanks for asking!" },
-        okA:     { zh: "回答已进审核队列，通过后会挂在这个问题下面。谢谢你！", en: "Your answer is in the review queue and will appear under the question once approved. Thank you!" },
+        okA:     { zh: "回答已收到！不用审核，一两分钟后就会出现在这个问题下面。谢谢你！", en: "Got your answer! No review needed — it will appear under the question within a minute or two. Thank you!" },
+        textOnly:{ zh: "回答仅限纯文字：请去掉网址、链接或图片（像 xxx.com 这样的也算）。", en: "Answers are plain text only — please remove web addresses, links or pictures (things like xxx.com count too)." },
         needQ:   { zh: "问题和“具体情况”都要写一写。", en: "Please fill in both the question and what's going on." },
         needA:   { zh: "回答还空着呢。", en: "The answer is still empty." },
         badLink: { zh: "这条链接不对：要以 http:// 或 https:// 开头的完整网址，不超过 500 字。", en: "That link doesn't work: use a full address starting with http:// or https://, up to 500 characters." },
@@ -569,6 +570,9 @@
       };
       ["tip", "amend", "question", "answer"].forEach(function (k) { TYPE_FIELDS[k].push("contact_visibility"); });
       var LINK_INPUTS = ["link1", "link2", "link3"];
+      // same rule as the inbox: answers go live unreviewed, so nothing that looks like a link
+      var ANSWER_LINK_RE = new RegExp("[a-z][a-z0-9+.-]*://|\\bwww\\.|\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.(?:com|cn|net|org|io|me|app|xyz|top|cc|co|ai|dev|link|ly|gg|tv|info|site|club|shop|" +
+        "vip|so|to|sh|im|fm|in|us|uk|jp|hk|tw|de|fr|ru|biz|online|store|tech|fun|live|pro|cloud|page|blog|one)\\b(?:[/:?#]|$|[^a-z0-9.-])", "i");
       var qaTitles = {};
       function fType() { return form.elements.type.value || "tip"; }
       function applyType() {
@@ -667,7 +671,7 @@
         });
         form.querySelectorAll(".bad").forEach(function (el) { el.classList.remove("bad"); });
         d.media_links = [];
-        for (var li = 0; li < LINK_INPUTS.length; li++) {
+        for (var li = 0; t !== "answer" && li < LINK_INPUTS.length; li++) {
           var el = form.elements[LINK_INPUTS[li]], v = (el.value || "").trim();
           if (!v) continue;
           if (v.length > 500 || !safeUrl(v) || /[\s<>"'`]/.test(v)) { el.classList.add("bad"); return say("err", MSG.badLink); }
@@ -676,6 +680,7 @@
         if (!d.contact) d.contact_visibility = "private";
         if (t === "answer") {
           if (!d.body) { form.elements.body.classList.add("bad"); return say("err", MSG.needA); }
+          if (ANSWER_LINK_RE.test(d.body)) { form.elements.body.classList.add("bad"); return say("err", MSG.textOnly); }
         } else if (!d.title || !d.body) {
           (!d.title ? form.elements.title : form.elements.body).classList.add("bad");
           return say("err", t === "question" ? MSG.needQ : MSG.need);
@@ -713,6 +718,10 @@
           }
           if (res.status === 429) return say("err", MSG.rate, ghUrl(d));
           if (res.status === 400 && res.j.field === "question_id") return say("err", MSG.goneQ, null, "qa.html");
+          if (res.status === 400 && (res.j.reason === "links_not_allowed" || res.j.reason === "answers_text_only")) {
+            form.elements.body.classList.add("bad");
+            return say("err", MSG.textOnly);
+          }
           if (res.status === 400 && res.j.field === "media_links") {
             LINK_INPUTS.forEach(function (k) { if (form.elements[k].value.trim()) form.elements[k].classList.add("bad"); });
             return say("err", MSG.badLink);

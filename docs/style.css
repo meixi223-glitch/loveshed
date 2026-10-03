@@ -539,3 +539,13 @@ a.mine-link:hover .mine-title { color: var(--violet); }
   .card.dim .front > :not(.scene) { display: none; }
   .card.dim .scene { font-size: 15px; }
 }
+
+/* P13: iOS home-screen app paints under the status bar (black-translucent, white glyphs).
+   Only there is env(safe-area-inset-top) > 0 at the very top; give that strip a violet band
+   that the white clock/battery stay readable on, fading into the lavender header below. */
+.top::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: env(safe-area-inset-top, 0px);
+  background: linear-gradient(120deg, #7c68c4, #9a78c9 60%, #b77fb8);
+  box-shadow: 0 6px 14px -6px rgba(124, 104, 196, .45);
+  pointer-events: none;
+}
