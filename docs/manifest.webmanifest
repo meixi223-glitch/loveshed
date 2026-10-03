@@ -15,5 +15,10 @@
     { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "工艺库 · Craft", "short_name": "工艺库", "url": "skills.html" },
+    { "name": "提问区 · Q&A", "short_name": "提问区", "url": "qa.html" },
+    { "name": "投稿 · Submit", "short_name": "投稿", "url": "submit.html" }
   ]
 }

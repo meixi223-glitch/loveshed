@@ -3,10 +3,10 @@
    Pages, scripts, styles and qa.json are network-first (revalidated every time), so a release
    is never hidden behind an old cache; the cache is only the offline fallback.
    Images are cache-first. Cross-origin requests (the submission inbox, GitHub) are never touched. */
-var VERSION = "2026-10-03-p8-icons";
+var VERSION = "2026-10-03-p9-pages";
 var CACHE = "loveshed-" + VERSION;
 var PRECACHE = [
-  "./", "index.html", "style.css", "app.js", "qa.json", "manifest.webmanifest",
+  "./", "index.html", "skills.html", "qa.html", "submit.html", "style.css", "app.js", "qa.json", "manifest.webmanifest",
   "favicon.svg", "apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"
 ];
 var NETWORK_TIMEOUT_MS = 4000;
@@ -29,7 +29,9 @@ self.addEventListener("activate", function (e) {
 });
 
 function networkFirst(req) {
-  var key = req.mode === "navigate" ? "./" : req.url;
+  // one cache entry per page: skills.html?scene=fire and skills.html share the offline copy
+  var u = new URL(req.url); u.search = ""; u.hash = "";
+  var key = u.href;
   var net = fetch(req.url, { cache: "no-cache", credentials: "same-origin" }).then(function (res) {
     if (res.ok) {
       var copy = res.clone();

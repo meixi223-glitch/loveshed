@@ -223,7 +223,7 @@
         '<div class="links">' +
           '<a href="' + base + 'TIPS.md" tabindex="-1">' + bi(LABELS.tips) + " ↗</a>" +
           (s.mode === "diy" ? "" : '<a href="' + base + 'SKILL.md" tabindex="-1">SKILL.md ↗</a>') +
-          '<a class="add-tip" href="#tip-form" data-amend="' + s.id + '" tabindex="-1">' + bi(LABELS.addTip) + "</a>" +
+          '<a class="add-tip" href="submit.html?type=amend&amp;skill=' + s.id + '" tabindex="-1">' + bi(LABELS.addTip) + "</a>" +
         "</div>" +
       "</div>"
     );
@@ -294,306 +294,63 @@
     });
   }
 
+  function params() {
+    var o = {};
+    location.search.replace(/^\?/, "").split("&").forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf("="), k = i < 0 ? kv : kv.slice(0, i), v = i < 0 ? "" : kv.slice(i + 1);
+      try { o[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, " ")); } catch (e) {}
+    });
+    return o;
+  }
+
+  // qa.json carries day-precision dates (asked / answered); a full timestamp (asked_at / answered_at)
+  // is used when present, so the publisher can add one later without breaking older files.
+  function ago(day, stamp) {
+    var now = new Date(), t = stamp ? new Date(stamp) : null;
+    if (t && !isNaN(t)) {
+      var min = Math.floor((now - t) / 60000);
+      if (min < 1) return { zh: "刚刚", en: "just now" };
+      if (min < 60) return { zh: min + " 分钟前", en: min + (min === 1 ? " minute ago" : " minutes ago") };
+      if (min < 24 * 60) { var h = Math.floor(min / 60); return { zh: h + " 小时前", en: h + (h === 1 ? " hour ago" : " hours ago") }; }
+      day = day || stamp.slice(0, 10);
+    }
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(day || "");
+    if (!m) return { zh: "", en: "" };
+    var then = new Date(+m[1], +m[2] - 1, +m[3]);
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var d = Math.round((today - then) / 864e5);
+    if (d <= 0) return { zh: "今天", en: "today" };
+    if (d === 1) return { zh: "昨天", en: "yesterday" };
+    if (d < 7) return { zh: d + " 天前", en: d + " days ago" };
+    if (d < 35) { var w = Math.floor(d / 7); return { zh: w + " 周前", en: w + (w === 1 ? " week ago" : " weeks ago") }; }
+    return { zh: +m[2] + " 月 " + +m[3] + " 日" + (then.getFullYear() !== now.getFullYear() ? "（" + m[1] + "）" : ""), en: m[1] + "-" + m[2] + "-" + m[3] };
+  }
+
+  function loadQA() {
+    return fetch("qa.json", { cache: "no-cache" }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function (qa) {
+      return (qa.questions || []).slice().sort(function (a, b) {
+        var x = a.asked_at || a.asked || "", y = b.asked_at || b.asked || "";
+        return x < y ? 1 : x > y ? -1 : 0;
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("lang-toggle").addEventListener("click", function () {
       setLang(root.getAttribute("data-lang") === "zh" ? "en" : "zh");
     });
+    var P = params();
 
-    /* ---------- cards ---------- */
-    var list = document.getElementById("cards");
-    list.innerHTML = SKILLS.map(card).join("");
-    document.getElementById("skill-count").textContent = SKILLS.length;
+    var count = document.getElementById("skill-count");
+    if (count) count.textContent = SKILLS.length;
 
-    list.addEventListener("click", function (e) {
-      var lb = e.target.closest("button[data-lens]");
-      if (lb) { setLens(lb.closest(".card"), lb.getAttribute("data-lens")); return; }
-      var am = e.target.closest("a[data-amend]");
-      if (am) { e.preventDefault(); openForm("amend", am.getAttribute("data-amend")); return; }
-      var cp = e.target.closest(".copy");
-      if (cp) { copyBrief(cp); return; }
-      var btn = e.target.closest(".flip");
-      if (!btn) return;
-      var c = btn.closest(".card");
-      var on = !c.classList.contains("flipped");
-      c.classList.toggle("flipped", on);
-      var front = c.querySelector(".front"), back = c.querySelector(".back");
-      front.setAttribute("aria-hidden", on ? "true" : "false");
-      back.setAttribute("aria-hidden", on ? "false" : "true");
-      front.querySelector(".flip").setAttribute("aria-expanded", on ? "true" : "false");
-      front.querySelectorAll("button,a,summary").forEach(function (el) { el.tabIndex = on ? -1 : 0; });
-      back.querySelectorAll("button,a,summary").forEach(function (el) { el.tabIndex = on ? 0 : -1; });
-      (on ? back : front).querySelector(".flip").focus({ preventScroll: true });
-    });
-
-    /* ---------- reading mode: for humans / for agents ---------- */
-    function setLens(c, m) {
-      c.setAttribute("data-lens", m);
-      c.querySelectorAll("button[data-lens]").forEach(function (b) {
-        b.setAttribute("aria-pressed", b.getAttribute("data-lens") === m ? "true" : "false");
-      });
-    }
-    var lensAll = document.querySelectorAll("#lens-all [data-lens-all]");
-    function setLensAll(m) {
-      lensAll.forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-lens-all") === m ? "true" : "false"); });
-      list.querySelectorAll(".card").forEach(function (c) { setLens(c, m); });
-      try { localStorage.setItem("loveshed-lens", m); } catch (e) {}
-    }
-    lensAll.forEach(function (b) {
-      b.addEventListener("click", function () { setLensAll(b.getAttribute("data-lens-all")); });
-    });
-    var savedLens = null;
-    try { savedLens = localStorage.getItem("loveshed-lens"); } catch (e) {}
-    setLensAll(savedLens === "human" ? "human" : "machine");
-
-    function copyBrief(btn) {
-      var lang = root.getAttribute("data-lang");
-      var id = btn.closest(".card").getAttribute("data-id");
-      var text = brief(REPO + "/blob/main/skills/" + id + "/SKILL.md")[lang];
-      function done() {
-        btn.innerHTML = bi(LABELS.copied);
-        setTimeout(function () { btn.innerHTML = bi(LABELS.copy); }, 1600);
-      }
-      function fallback() {
-        var ta = document.createElement("textarea");
-        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand("copy"); done(); } catch (e) {}
-        document.body.removeChild(ta);
-      }
-      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
-      else fallback();
-    }
-
-    /* ---------- direct submission form ---------- */
-    var form = document.getElementById("tip-form");
-    var fStatus = form.querySelector(".tf-status");
-    var fBtn = form.querySelector("button[type=submit]");
-    var fSkill = form.elements.skill;
-    var GAP_MS = 60 * 1000;          // local throttle between successful sends
-    var MSG = {
-      ok:      { zh: "已进审核队列，通过后上架并保留署名。谢谢你！", en: "In the review queue. Once approved it goes up with your credit kept. Thank you!" },
-      sending: { zh: "正在投递…", en: "Sending…" },
-      wait:    { zh: "刚投过一条，歇一分钟再投吧。", en: "You just sent one — give it a minute." },
-      dup:     { zh: "这条刚刚已经投过了，不用重复投。", en: "This exact tip was just sent — no need to send it again." },
-      need:    { zh: "标题和“怎么做”是必填的。", en: "Title and “How to do it” are required." },
-      rate:    { zh: "这一小时投得有点多了，过一会儿再来，或者", en: "That's a lot for one hour — try again later, or " },
-      markup:  { zh: "里面有像 HTML 的内容（比如尖括号标签），请改成纯文字。", en: "Something there looks like HTML (angle-bracket tags) — please use plain text." },
-      invalid: { zh: "有一栏没通过检查，请看看是不是太长了。", en: "One field didn't pass the check — is it too long?" },
-      down:    { zh: "投稿口暂时连不上。内容别丢，可以", en: "The inbox can't be reached right now. Don't lose your text — you can " },
-      gh:      { zh: "改用 GitHub issue 投稿 ↗", en: "submit it as a GitHub issue instead ↗" },
-      newCard: { zh: "新的一招（还没有对应的卡）", en: "Something new (no card yet)" },
-      okQ:     { zh: "问题已进审核队列，通过后会出现在提问区。谢谢你来问！", en: "Your question is in the review queue and will show up in Q&A once approved. Thanks for asking!" },
-      okA:     { zh: "回答已进审核队列，通过后会挂在这个问题下面。谢谢你！", en: "Your answer is in the review queue and will appear under the question once approved. Thank you!" },
-      needQ:   { zh: "问题和“具体情况”都要写一写。", en: "Please fill in both the question and what's going on." },
-      needA:   { zh: "回答还空着呢。", en: "The answer is still empty." },
-      goneQ:   { zh: "这个问题暂时不能回答了（可能刚下架），刷新页面看看。", en: "That question can't take answers right now (maybe just removed) — try reloading." }
-    };
-    var TYPE_FIELDS = {
-      tip:      ["skill", "title", "body", "duration", "pitfalls", "nickname", "contact"],
-      amend:    ["skill", "title", "body", "duration", "pitfalls", "nickname", "contact"],
-      question: ["title", "body", "contact"],
-      answer:   ["question_id", "body", "contact"]
-    };
-    var qaTitles = {};
-    function fType() { return form.elements.type.value || "tip"; }
-    function applyType() {
-      var t = fType();
-      form.setAttribute("data-type", t);
-      form.querySelectorAll("[data-types]").forEach(function (el) {
-        el.hidden = el.getAttribute("data-types").split(" ").indexOf(t) < 0;
-      });
-      if (t === "tip" || t === "amend") skillOptions(root.getAttribute("data-lang"));
-      placeholders(root.getAttribute("data-lang"));
-    }
-    function placeholders(l) {
-      var t = fType(), v = t === "question" ? "q-" : t === "answer" ? "a-" : "";
-      form.querySelectorAll("[data-ph-zh]").forEach(function (el) {
-        el.placeholder = el.getAttribute("data-ph-" + v + l) || el.getAttribute("data-ph-" + l);
-      });
-    }
-    function skillOptions(l) {
-      var cur = fSkill.value;
-      var isAmend = form.elements.type.value === "amend";
-      var opts = SKILLS.map(function (s) { return '<option value="' + s.id + '">' + esc(s.scene[l] + " · " + s.id) + "</option>"; });
-      if (!isAmend) opts.unshift('<option value="new">' + esc(MSG.newCard[l]) + "</option>");
-      fSkill.innerHTML = opts.join("");
-      if (cur && fSkill.querySelector('option[value="' + cur + '"]')) fSkill.value = cur;
-    }
-    function formLang(l) {
-      skillOptions(l);
-      placeholders(l);
-    }
-    langHooks.push(formLang);
-    applyType();
-    form.querySelectorAll("input[name=type]").forEach(function (r) {
-      r.addEventListener("change", applyType);
-    });
-    form.querySelector(".tf-unanswer").addEventListener("click", function () { openForm("question"); });
-    var bodyCount = form.querySelector('.tf-count[data-for="body"]');
-    form.elements.body.addEventListener("input", function () { bodyCount.textContent = form.elements.body.value.length + " / 5000"; });
-
-    function openForm(type, skill, qid) {
-      form.querySelector('input[name=type][value="' + type + '"]').checked = true;
-      form.elements.question_id.value = type === "answer" ? qid : "";
-      form.querySelector(".tf-qtitle").textContent = type === "answer" ? (qaTitles[qid] || "") : "";
-      applyType();
-      if (skill) fSkill.value = skill;
-      form.classList.remove("sent");
-      fStatus.className = "tf-status"; fStatus.textContent = "";
-      form.classList.add("in");
-      form.scrollIntoView({ behavior: "smooth", block: "start" });
-      var first = type === "answer" ? form.elements.body : form.elements.title;
-      setTimeout(function () { first.focus({ preventScroll: true }); }, 500);
-    }
-    function ghUrl(d) {
-      if (d.type === "question" || d.type === "answer") {
-        var title = d.type === "question" ? "[question] " + d.title : "[answer] " + (qaTitles[d.question_id] || d.question_id);
-        return REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(d.body.slice(0, 1500));
-      }
-      var amend = d.type === "amend";
-      var u = REPO + "/issues/new?template=" + (amend ? "tip-amend.yml" : "tip-submit.yml") +
-              "&title=" + encodeURIComponent((amend ? "[tip-fix] " : "[tip] ") + (d.skill !== "new" ? d.skill + ": " : "") + d.title);
-      if (amend) u += "&tip_file=" + encodeURIComponent("skills/" + d.skill + "/TIPS.md");
-      return u;
-    }
-    function say(kind, msg, link) {
-      fStatus.className = "tf-status " + kind;
-      fStatus.innerHTML = bi(msg) + (link ? ' <a href="' + esc(link) + '" target="_blank" rel="noopener">' + bi(MSG.gh) + "</a>" : "");
-    }
-    function hash(str) {
-      var h = 5381;
-      for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
-      return String(h);
-    }
-    function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
-
-    var busy = false;
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      if (busy) return;
-      var t = fType();
-      var d = { type: t };
-      TYPE_FIELDS[t].concat(["website"]).forEach(function (k) {
-        d[k] = (form.elements[k].value || "").trim();
-      });
-      form.querySelectorAll(".bad").forEach(function (el) { el.classList.remove("bad"); });
-      if (t === "answer") {
-        if (!d.body) { form.elements.body.classList.add("bad"); return say("err", MSG.needA); }
-      } else if (!d.title || !d.body) {
-        (!d.title ? form.elements.title : form.elements.body).classList.add("bad");
-        return say("err", t === "question" ? MSG.needQ : MSG.need);
-      }
-      var h = hash(t + "\n" + (d.skill || d.question_id || "") + "\n" + (d.title || "") + "\n" + d.body);
-      if (store("loveshed-tip-last-hash") === h) return say("err", MSG.dup);
-      var last = +store("loveshed-tip-last-at") || 0;
-      if (Date.now() - last < GAP_MS) return say("err", MSG.wait);
-
-      busy = true; fBtn.disabled = true; say("", MSG.sending);
-      var ctl = "AbortController" in window ? new AbortController() : null;
-      var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
-      fetch(INTAKE, {
-        method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(d), signal: ctl ? ctl.signal : undefined
-      }).then(function (r) {
-        return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; });
-      }).then(function (res) {
-        if (res.status === 201 && res.j.ok) {
-          store("loveshed-tip-last-at", String(Date.now()));
-          store("loveshed-tip-last-hash", h);
-          form.classList.add("sent");
-          say("ok", t === "question" ? MSG.okQ : t === "answer" ? MSG.okA : MSG.ok);
-          ["title", "body", "duration", "pitfalls"].forEach(function (k) { form.elements[k].value = ""; });
-          bodyCount.textContent = "0 / 5000";
-          return;
-        }
-        if (res.status === 429) return say("err", MSG.rate, ghUrl(d));
-        if (res.status === 400 && res.j.field === "question_id") return say("err", MSG.goneQ);
-        if (res.status === 400 && res.j.field && form.elements[res.j.field]) {
-          form.elements[res.j.field].classList.add("bad");
-          return say("err", res.j.reason === "markup_not_allowed" ? MSG.markup : MSG.invalid);
-        }
-        say("err", MSG.down, ghUrl(d));
-      }).catch(function () {
-        say("err", MSG.down, ghUrl(d));
-      }).then(function () {
-        clearTimeout(timer);
-        // keep the button resting a moment so a double tap can't send twice
-        setTimeout(function () { busy = false; fBtn.disabled = false; }, 2500);
-      });
-    });
-    form.addEventListener("input", function () { form.classList.remove("sent"); });
-
-    /* ---------- Q&A board (docs/qa.json, reviewed entries only) ---------- */
-    var qaList = document.getElementById("qa-list");
-    var QA = {
-      anon:    { zh: "匿名姐妹", en: "Anonymous sister" },
-      keeper:  { zh: "掌柜", en: "Keeper" },
-      answer:  { zh: "我来回答", en: "I'll answer" },
-      noAns:   { zh: "还没有回答，等掌柜和姐妹们来接。", en: "No answers yet — waiting for the keeper and the sisters." },
-      nAns:    { zh: " 条回答", en: " answers" },
-      fail:    { zh: "提问区暂时没加载出来，过会儿刷新试试。", en: "Q&A didn't load — try reloading in a bit." }
-    };
-    function para(text) {
-      return text.split(/\n{2,}/).map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("");
-    }
-    function qaItem(q) {
-      var answers = (q.answers || []).map(function (a) {
-        return '<li class="qa-a"><p class="qa-by">' + bi(a.role === "keeper" ? QA.keeper : QA.anon) +
-               ' · <time>' + esc(a.answered || "") + "</time></p>" + para(a.body) + "</li>";
-      }).join("");
-      var n = (q.answers || []).length;
-      return (
-        '<li class="qa-q" id="' + esc(q.id) + '">' +
-          '<h3 class="qa-title">' + esc(q.title) + "</h3>" +
-          '<p class="qa-by">' + bi(QA.anon) + ' · <time>' + esc(q.asked || "") + "</time>" +
-            (n ? ' · <span class="qa-n">' + n + bi(QA.nAns) + "</span>" : "") + "</p>" +
-          '<div class="qa-body">' + para(q.body || "") + "</div>" +
-          (n ? '<ol class="qa-answers">' + answers + "</ol>" : '<p class="qa-none">' + bi(QA.noAns) + "</p>") +
-          '<button type="button" class="btn ghost qa-reply" data-answer="' + esc(q.id) + '">' + bi(QA.answer) + "</button>" +
-        "</li>"
-      );
-    }
-    fetch("qa.json", { cache: "no-cache" }).then(function (r) {
-      if (!r.ok) throw new Error(r.status);
-      return r.json();
-    }).then(function (qa) {
-      var qs = (qa.questions || []).slice().sort(function (a, b) { return a.asked < b.asked ? 1 : a.asked > b.asked ? -1 : 0; });
-      qs.forEach(function (q) { qaTitles[q.id] = q.title; });
-      qaList.innerHTML = qs.map(qaItem).join("");
-      document.querySelector(".qa-empty").hidden = qs.length > 0;
-    }).catch(function () {
-      qaList.innerHTML = '<li class="qa-fail">' + bi(QA.fail) + "</li>";
-    });
-    qaList.addEventListener("click", function (e) {
-      var b = e.target.closest("button[data-answer]");
-      if (b) openForm("answer", null, b.getAttribute("data-answer"));
-    });
-    document.querySelectorAll("[data-ask]").forEach(function (a) {
-      a.addEventListener("click", function (e) { e.preventDefault(); openForm("question"); });
-    });
-
-    /* ---------- routes ---------- */
-    var chips = document.querySelectorAll("[data-route]");
-    function pick(r) {
-      chips.forEach(function (ch) { ch.setAttribute("aria-pressed", ch.getAttribute("data-route") === r ? "true" : "false"); });
-      list.querySelectorAll(".card").forEach(function (c) {
-        var hit = r === "all" || c.getAttribute("data-routes").split(" ").indexOf(r) >= 0;
-        c.classList.toggle("dim", !hit);
-      });
-      var n = r === "all" ? SKILLS.length : SKILLS.filter(function (s) { return s.routes.indexOf(r) >= 0; }).length;
-      document.getElementById("route-note").innerHTML =
-        r === "all" ? bi({ zh: "10 张卡都在这里。", en: "All 10 cards." })
-                    : bi({ zh: "「" + ROUTES[r].zh + "」这条路上有 " + n + " 张卡，已为你点亮。", en: n + " cards lit up for “" + ROUTES[r].en + "”." });
-    }
-    chips.forEach(function (ch) {
-      ch.addEventListener("click", function () {
-        var r = ch.getAttribute("data-route");
-        pick(r);
-        if (ch.closest("#routes")) document.getElementById("skills").scrollIntoView({ behavior: "smooth" });
-      });
-    });
-    pick("all");
+    initCards();
+    initForm();
+    initForum();
 
     /* ---------- reveal ---------- */
     var els = document.querySelectorAll(".reveal");
@@ -604,6 +361,337 @@
       els.forEach(function (el) { io.observe(el); });
     } else {
       els.forEach(function (el) { el.classList.add("in"); });
+    }
+
+    /* ---------- craft library (skills.html) ---------- */
+    function initCards() {
+      var list = document.getElementById("cards");
+      if (!list) return;
+      list.innerHTML = SKILLS.map(card).join("");
+
+      list.addEventListener("click", function (e) {
+        var lb = e.target.closest("button[data-lens]");
+        if (lb) { setLens(lb.closest(".card"), lb.getAttribute("data-lens")); return; }
+        var cp = e.target.closest(".copy");
+        if (cp) { copyBrief(cp); return; }
+        var btn = e.target.closest(".flip");
+        if (!btn) return;
+        var c = btn.closest(".card");
+        var on = !c.classList.contains("flipped");
+        c.classList.toggle("flipped", on);
+        var front = c.querySelector(".front"), back = c.querySelector(".back");
+        front.setAttribute("aria-hidden", on ? "true" : "false");
+        back.setAttribute("aria-hidden", on ? "false" : "true");
+        front.querySelector(".flip").setAttribute("aria-expanded", on ? "true" : "false");
+        front.querySelectorAll("button,a,summary").forEach(function (el) { el.tabIndex = on ? -1 : 0; });
+        back.querySelectorAll("button,a,summary").forEach(function (el) { el.tabIndex = on ? 0 : -1; });
+        (on ? back : front).querySelector(".flip").focus({ preventScroll: true });
+      });
+
+      /* reading mode: for humans / for agents */
+      function setLens(c, m) {
+        c.setAttribute("data-lens", m);
+        c.querySelectorAll("button[data-lens]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.getAttribute("data-lens") === m ? "true" : "false");
+        });
+      }
+      var lensAll = document.querySelectorAll("#lens-all [data-lens-all]");
+      function setLensAll(m) {
+        lensAll.forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-lens-all") === m ? "true" : "false"); });
+        list.querySelectorAll(".card").forEach(function (c) { setLens(c, m); });
+        try { localStorage.setItem("loveshed-lens", m); } catch (e) {}
+      }
+      lensAll.forEach(function (b) {
+        b.addEventListener("click", function () { setLensAll(b.getAttribute("data-lens-all")); });
+      });
+      var savedLens = null;
+      try { savedLens = localStorage.getItem("loveshed-lens"); } catch (e) {}
+      setLensAll(savedLens === "human" ? "human" : "machine");
+
+      function copyBrief(btn) {
+        var lang = root.getAttribute("data-lang");
+        var id = btn.closest(".card").getAttribute("data-id");
+        var text = brief(REPO + "/blob/main/skills/" + id + "/SKILL.md")[lang];
+        function done() {
+          btn.innerHTML = bi(LABELS.copied);
+          setTimeout(function () { btn.innerHTML = bi(LABELS.copy); }, 1600);
+        }
+        function fallback() {
+          var ta = document.createElement("textarea");
+          ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand("copy"); done(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+        else fallback();
+      }
+
+      /* scene filter: ?scene=move|fire|build|care, set by the home page's path buttons */
+      var chips = document.querySelectorAll(".chips [data-scene]");
+      function pick(r, keepUrl) {
+        chips.forEach(function (ch) { ch.setAttribute("aria-pressed", ch.getAttribute("data-scene") === r ? "true" : "false"); });
+        list.querySelectorAll(".card").forEach(function (c) {
+          var hit = r === "all" || c.getAttribute("data-routes").split(" ").indexOf(r) >= 0;
+          c.classList.toggle("dim", !hit);
+        });
+        var n = r === "all" ? SKILLS.length : SKILLS.filter(function (s) { return s.routes.indexOf(r) >= 0; }).length;
+        document.getElementById("route-note").innerHTML =
+          r === "all" ? bi({ zh: SKILLS.length + " 张卡都在这里。", en: "All " + SKILLS.length + " cards." })
+                      : bi({ zh: "「" + ROUTES[r].zh + "」这条路上有 " + n + " 张卡，已为你点亮。", en: n + " cards lit up for “" + ROUTES[r].en + "”." });
+        if (!keepUrl && history.replaceState) history.replaceState(null, "", r === "all" ? location.pathname : "?scene=" + r);
+      }
+      chips.forEach(function (ch) {
+        ch.addEventListener("click", function () { pick(ch.getAttribute("data-scene")); });
+      });
+      pick(ROUTES.hasOwnProperty(P.scene) ? P.scene : "all", true);
+    }
+
+    /* ---------- direct submission form (submit.html) ---------- */
+    function initForm() {
+      var form = document.getElementById("tip-form");
+      if (!form) return;
+      var fStatus = form.querySelector(".tf-status");
+      var fBtn = form.querySelector("button[type=submit]");
+      var fSkill = form.elements.skill;
+      var GAP_MS = 60 * 1000;          // local throttle between successful sends
+      var MSG = {
+        ok:      { zh: "已进审核队列，通过后上架并保留署名。谢谢你！", en: "In the review queue. Once approved it goes up with your credit kept. Thank you!" },
+        sending: { zh: "正在投递…", en: "Sending…" },
+        wait:    { zh: "刚投过一条，歇一分钟再投吧。", en: "You just sent one — give it a minute." },
+        dup:     { zh: "这条刚刚已经投过了，不用重复投。", en: "This exact tip was just sent — no need to send it again." },
+        need:    { zh: "标题和“怎么做”是必填的。", en: "Title and “How to do it” are required." },
+        rate:    { zh: "这一小时投得有点多了，过一会儿再来，或者", en: "That's a lot for one hour — try again later, or " },
+        markup:  { zh: "里面有像 HTML 的内容（比如尖括号标签），请改成纯文字。", en: "Something there looks like HTML (angle-bracket tags) — please use plain text." },
+        invalid: { zh: "有一栏没通过检查，请看看是不是太长了。", en: "One field didn't pass the check — is it too long?" },
+        down:    { zh: "投稿口暂时连不上。内容别丢，可以", en: "The inbox can't be reached right now. Don't lose your text — you can " },
+        gh:      { zh: "改用 GitHub issue 投稿 ↗", en: "submit it as a GitHub issue instead ↗" },
+        newCard: { zh: "新的一招（还没有对应的卡）", en: "Something new (no card yet)" },
+        okQ:     { zh: "问题已进审核队列，通过后会出现在提问区。谢谢你来问！", en: "Your question is in the review queue and will show up in Q&A once approved. Thanks for asking!" },
+        okA:     { zh: "回答已进审核队列，通过后会挂在这个问题下面。谢谢你！", en: "Your answer is in the review queue and will appear under the question once approved. Thank you!" },
+        needQ:   { zh: "问题和“具体情况”都要写一写。", en: "Please fill in both the question and what's going on." },
+        needA:   { zh: "回答还空着呢。", en: "The answer is still empty." },
+        goneQ:   { zh: "这个问题暂时不能回答了（可能刚下架），回提问区刷新看看。", en: "That question can't take answers right now (maybe just removed) — check the Q&A board." },
+        backQA:  { zh: "回提问区 →", en: "Back to Q&A →" }
+      };
+      var TYPE_FIELDS = {
+        tip:      ["skill", "title", "body", "duration", "pitfalls", "nickname", "contact"],
+        amend:    ["skill", "title", "body", "duration", "pitfalls", "nickname", "contact"],
+        question: ["title", "body", "contact"],
+        answer:   ["question_id", "body", "contact"]
+      };
+      var qaTitles = {};
+      function fType() { return form.elements.type.value || "tip"; }
+      function applyType() {
+        var t = fType();
+        form.setAttribute("data-type", t);
+        form.querySelectorAll("[data-types]").forEach(function (el) {
+          el.hidden = el.getAttribute("data-types").split(" ").indexOf(t) < 0;
+        });
+        if (t === "tip" || t === "amend") skillOptions(root.getAttribute("data-lang"));
+        placeholders(root.getAttribute("data-lang"));
+      }
+      function placeholders(l) {
+        var t = fType(), v = t === "question" ? "q-" : t === "answer" ? "a-" : "";
+        form.querySelectorAll("[data-ph-zh]").forEach(function (el) {
+          el.placeholder = el.getAttribute("data-ph-" + v + l) || el.getAttribute("data-ph-" + l);
+        });
+      }
+      function skillOptions(l) {
+        var cur = fSkill.value;
+        var isAmend = form.elements.type.value === "amend";
+        var opts = SKILLS.map(function (s) { return '<option value="' + s.id + '">' + esc(s.scene[l] + " · " + s.id) + "</option>"; });
+        if (!isAmend) opts.unshift('<option value="new">' + esc(MSG.newCard[l]) + "</option>");
+        fSkill.innerHTML = opts.join("");
+        if (cur && fSkill.querySelector('option[value="' + cur + '"]')) fSkill.value = cur;
+      }
+      langHooks.push(function (l) { skillOptions(l); placeholders(l); });
+      form.querySelectorAll("input[name=type]").forEach(function (r) {
+        r.addEventListener("change", applyType);
+      });
+      form.querySelector(".tf-unanswer").addEventListener("click", function () { openForm("question", null, null, true); });
+      var bodyCount = form.querySelector('.tf-count[data-for="body"]');
+      form.elements.body.addEventListener("input", function () { bodyCount.textContent = form.elements.body.value.length + " / 5000"; });
+
+      function openForm(type, skill, qid, focus) {
+        form.querySelector('input[name=type][value="' + type + '"]').checked = true;
+        form.elements.question_id.value = type === "answer" ? qid : "";
+        form.querySelector(".tf-qtitle").textContent = type === "answer" ? (qaTitles[qid] || "") : "";
+        applyType();
+        if (skill && fSkill.querySelector('option[value="' + skill + '"]')) fSkill.value = skill;
+        form.classList.remove("sent");
+        fStatus.className = "tf-status"; fStatus.textContent = "";
+        form.classList.add("in");
+        if (focus) {
+          form.scrollIntoView({ behavior: "smooth", block: "start" });
+          var first = type === "answer" ? form.elements.body : form.elements.title;
+          setTimeout(function () { first.focus({ preventScroll: true }); }, 500);
+        }
+      }
+
+      // prefill from the URL: submit.html?type=tip|amend|question|answer&skill=<id>&question_id=<id>
+      var t0 = TYPE_FIELDS.hasOwnProperty(P.type) ? P.type : "tip";
+      if (t0 === "answer" && !P.question_id) t0 = "question";
+      openForm(t0, P.skill, P.question_id);
+      if (t0 === "answer") {
+        form.querySelector(".tf-qtitle").textContent = "…";
+        loadQA().then(function (qs) {
+          qs.forEach(function (q) { qaTitles[q.id] = q.title; });
+          if (fType() !== "answer") return;
+          var qid = form.elements.question_id.value;
+          form.querySelector(".tf-qtitle").textContent = qaTitles[qid] || qid;
+          if (!qaTitles[qid]) say("err", MSG.goneQ, null, "qa.html");
+        }).catch(function () { form.querySelector(".tf-qtitle").textContent = form.elements.question_id.value; });
+      }
+
+      function ghUrl(d) {
+        if (d.type === "question" || d.type === "answer") {
+          var title = d.type === "question" ? "[question] " + d.title : "[answer] " + (qaTitles[d.question_id] || d.question_id);
+          return REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(d.body.slice(0, 1500));
+        }
+        var amend = d.type === "amend";
+        var u = REPO + "/issues/new?template=" + (amend ? "tip-amend.yml" : "tip-submit.yml") +
+                "&title=" + encodeURIComponent((amend ? "[tip-fix] " : "[tip] ") + (d.skill !== "new" ? d.skill + ": " : "") + d.title);
+        if (amend) u += "&tip_file=" + encodeURIComponent("skills/" + d.skill + "/TIPS.md");
+        return u;
+      }
+      function say(kind, msg, link, back) {
+        fStatus.className = "tf-status " + kind;
+        fStatus.innerHTML = bi(msg) + (link ? ' <a href="' + esc(link) + '" target="_blank" rel="noopener">' + bi(MSG.gh) + "</a>" : "") +
+                            (back ? ' <a href="' + esc(back) + '">' + bi(MSG.backQA) + "</a>" : "");
+      }
+      function hash(str) {
+        var h = 5381;
+        for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+        return String(h);
+      }
+      function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+      var busy = false;
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (busy) return;
+        var t = fType();
+        var d = { type: t };
+        TYPE_FIELDS[t].concat(["website"]).forEach(function (k) {
+          d[k] = (form.elements[k].value || "").trim();
+        });
+        form.querySelectorAll(".bad").forEach(function (el) { el.classList.remove("bad"); });
+        if (t === "answer") {
+          if (!d.body) { form.elements.body.classList.add("bad"); return say("err", MSG.needA); }
+        } else if (!d.title || !d.body) {
+          (!d.title ? form.elements.title : form.elements.body).classList.add("bad");
+          return say("err", t === "question" ? MSG.needQ : MSG.need);
+        }
+        var h = hash(t + "\n" + (d.skill || d.question_id || "") + "\n" + (d.title || "") + "\n" + d.body);
+        if (store("loveshed-tip-last-hash") === h) return say("err", MSG.dup);
+        var last = +store("loveshed-tip-last-at") || 0;
+        if (Date.now() - last < GAP_MS) return say("err", MSG.wait);
+
+        busy = true; fBtn.disabled = true; say("", MSG.sending);
+        var ctl = "AbortController" in window ? new AbortController() : null;
+        var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
+        fetch(INTAKE, {
+          method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(d), signal: ctl ? ctl.signal : undefined
+        }).then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; });
+        }).then(function (res) {
+          if (res.status === 201 && res.j.ok) {
+            store("loveshed-tip-last-at", String(Date.now()));
+            store("loveshed-tip-last-hash", h);
+            form.classList.add("sent");
+            if (t === "question") say("ok", MSG.okQ, null, "qa.html");
+            else if (t === "answer") say("ok", MSG.okA, null, "qa.html#" + encodeURIComponent(d.question_id));
+            else say("ok", MSG.ok);
+            ["title", "body", "duration", "pitfalls"].forEach(function (k) { form.elements[k].value = ""; });
+            bodyCount.textContent = "0 / 5000";
+            return;
+          }
+          if (res.status === 429) return say("err", MSG.rate, ghUrl(d));
+          if (res.status === 400 && res.j.field === "question_id") return say("err", MSG.goneQ, null, "qa.html");
+          if (res.status === 400 && res.j.field && form.elements[res.j.field]) {
+            form.elements[res.j.field].classList.add("bad");
+            return say("err", res.j.reason === "markup_not_allowed" ? MSG.markup : MSG.invalid);
+          }
+          say("err", MSG.down, ghUrl(d));
+        }).catch(function () {
+          say("err", MSG.down, ghUrl(d));
+        }).then(function () {
+          clearTimeout(timer);
+          // keep the button resting a moment so a double tap can't send twice
+          setTimeout(function () { busy = false; fBtn.disabled = false; }, 2500);
+        });
+      });
+      form.addEventListener("input", function () { form.classList.remove("sent"); });
+    }
+
+    /* ---------- Q&A forum (qa.html; docs/qa.json, reviewed entries only) ---------- */
+    function initForum() {
+      var qaList = document.getElementById("qa-list");
+      if (!qaList) return;
+      var QA = {
+        anon:    { zh: "匿名姐妹", en: "Anonymous sister" },
+        keeper:  { zh: "掌柜", en: "Keeper" },
+        answer:  { zh: "我来回答", en: "I'll answer" },
+        noAns:   { zh: "还没有回答，等掌柜和姐妹们来接。", en: "No answers yet — waiting for the keeper and the sisters." },
+        ans:     { zh: "回答", en: "answers" },
+        ans1:    { zh: "回答", en: "answer" },
+        fail:    { zh: "提问区暂时没加载出来，过会儿刷新试试。", en: "Q&A didn't load — try reloading in a bit." }
+      };
+      function para(text) {
+        return text.split(/\n{2,}/).map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("");
+      }
+      function when(day, stamp) {
+        return '<time datetime="' + esc(stamp || day || "") + '" title="' + esc(day || (stamp || "").slice(0, 10)) + '">' + bi(ago(day, stamp)) + "</time>";
+      }
+      function item(q) {
+        var as = q.answers || [], n = as.length, id = esc(q.id);
+        var answers = as.map(function (a) {
+          return '<li class="qa-a' + (a.role === "keeper" ? " keeper" : "") + '"><p class="qa-by">' + bi(a.role === "keeper" ? QA.keeper : QA.anon) +
+                 " · " + when(a.answered, a.answered_at) + "</p>" + para(a.body || "") + "</li>";
+        }).join("");
+        return (
+          '<li class="qa-q" id="' + id + '">' +
+            '<h2 class="qa-h"><button type="button" class="qa-head" aria-expanded="false" aria-controls="d-' + id + '">' +
+              '<span class="qa-title">' + esc(q.title) + "</span>" +
+              '<span class="qa-by">' + bi(QA.anon) + " · " + when(q.asked, q.asked_at) + "</span>" +
+              '<span class="qa-badge' + (n ? "" : " zero") + '"><b>' + n + "</b><small>" + bi(n === 1 ? QA.ans1 : QA.ans) + "</small></span>" +
+            "</button></h2>" +
+            '<div class="qa-detail" id="d-' + id + '" hidden>' +
+              '<div class="qa-body">' + para(q.body || "") + "</div>" +
+              (n ? '<ol class="qa-answers">' + answers + "</ol>" : '<p class="qa-none">' + bi(QA.noAns) + "</p>") +
+              '<a class="btn ghost qa-reply" href="submit.html?type=answer&amp;question_id=' + encodeURIComponent(q.id) + '">' +
+                '<span aria-hidden="true">✎</span> ' + bi(QA.answer) + "</a>" +
+            "</div>" +
+          "</li>"
+        );
+      }
+      function toggle(li, on, scroll, quiet) {
+        var b = li.querySelector(".qa-head");
+        if (on === undefined) on = b.getAttribute("aria-expanded") !== "true";
+        b.setAttribute("aria-expanded", on ? "true" : "false");
+        li.classList.toggle("open", on);
+        li.querySelector(".qa-detail").hidden = !on;
+        if (!quiet && history.replaceState) history.replaceState(null, "", on ? "#" + li.id : location.pathname + location.search);
+        if (scroll) li.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      loadQA().then(function (qs) {
+        qaList.innerHTML = qs.map(item).join("");
+        document.querySelector(".qa-empty").hidden = qs.length > 0;
+        document.querySelector(".forum-count").innerHTML = bi({ zh: "共 " + qs.length + " 个问题", en: qs.length + (qs.length === 1 ? " question" : " questions") });
+        var h = decodeURIComponent(location.hash.slice(1));
+        var hit = h && document.getElementById(h);
+        if (hit && hit.classList.contains("qa-q")) toggle(hit, true, true);
+        else if (qs.length === 1) toggle(qaList.firstChild, true, false, true);
+      }).catch(function () {
+        qaList.innerHTML = '<li class="qa-fail">' + bi(QA.fail) + "</li>";
+      });
+      qaList.addEventListener("click", function (e) {
+        var b = e.target.closest(".qa-head");
+        if (b) toggle(b.closest(".qa-q"));
+      });
     }
   });
 })();

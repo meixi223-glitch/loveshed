@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>提问区 · loveshed</title>
+<meta name="description" content="loveshed 提问区：卡片里没写到的，就在这里问；问题和回答都经过审核，一律匿名。">
+<meta name="theme-color" content="#f3ecfb">
+<meta property="og:title" content="提问区 · loveshed">
+<meta property="og:description" content="给想为 TA 盖房子的人，一套可安装、带战绩的施工工艺。">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="loveshed">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body data-page="qa">
+<div class="sky" aria-hidden="true">
+  <i class="haze h1"></i><i class="haze h2"></i><i class="haze h3"></i>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="brand" href="./" aria-label="loveshed">
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M5 15 16 6l11 9M8 13v12h16V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="13" y="17" width="6" height="5" rx="1" fill="currentColor" opacity=".55"/></svg>
+    loveshed
+  </a>
+  <nav class="nav" aria-label="pages">
+    <a href="skills.html"><span class="zh">工艺库</span><span class="en">Craft</span></a>
+    <a href="qa.html" aria-current="page"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a>
+    <a href="submit.html"><span class="zh">投稿</span><span class="en">Submit</span></a>
+    <a class="nav-gh" href="https://github.com/meixi223-glitch/loveshed">GitHub</a>
+  </nav>
+  <button id="lang-toggle" class="lang" type="button"><span class="zh">EN</span><span class="en">中</span></button>
+</header>
+
+<main id="top">
+
+  <section id="qa" class="qa-board page-head" aria-labelledby="qa-h">
+    <h1 id="qa-h" class="sec-h"><span class="zh">提问区</span><span class="en">Questions &amp; answers</span></h1>
+    <p class="sec-sub"><span class="zh">卡片里没写到的，就在这里问。问题和回答都经过审核，所有人都显示为“匿名姐妹”。</span><span class="en">Whatever the cards don't cover, ask here. Every question and answer is reviewed, and everyone shows up as “an anonymous sister”.</span></p>
+    <div class="cta">
+      <a class="btn primary" href="submit.html?type=question"><span aria-hidden="true">✎</span> <span class="zh">我要提问</span><span class="en">Ask a question</span></a>
+    </div>
+    <div class="forum-bar">
+      <span class="forum-count" aria-live="polite"></span>
+      <span class="forum-sort"><span class="zh">最新在前</span><span class="en">Newest first</span></span>
+    </div>
+    <ol id="qa-list" class="qa-list forum" aria-live="polite"></ol>
+    <p class="qa-empty" hidden><span class="zh">提问区暂时还空着，来问第一个吧。</span><span class="en">Nothing here yet — be the first to ask.</span></p>
+    <noscript><p class="sec-sub">The Q&amp;A board needs JavaScript — or read <a href="qa.json">qa.json</a> directly.</p></noscript>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>MIT · built by yumei &amp; Jin</p>
+  <p class="foot-links"><a href="skills.html"><span class="zh">工艺库</span><span class="en">Craft</span></a><span aria-hidden="true">·</span><a href="qa.html"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a><span aria-hidden="true">·</span><a href="submit.html"><span class="zh">投稿</span><span class="en">Submit</span></a><span aria-hidden="true">·</span><a href="https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md"><span class="zh">投稿指南</span><span class="en">Contributing</span> ↗</a></p>
+  <p class="foot-sub"><span class="zh">数据截至 2026-10-03，以仓库内 SKILL.md、EVALUATION.md 与 TIPS.md 为准。</span><span class="en">Data as of 2026-10-03; SKILL.md, EVALUATION.md and TIPS.md in the repo are the source of truth.</span></p>
+</footer>
+</body>
+</html>

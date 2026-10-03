@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>投稿 · loveshed</title>
+<meta name="description" content="loveshed 投稿：分享经验、补充纠错、提问和回答，不用注册，审核后上架。">
+<meta name="theme-color" content="#f3ecfb">
+<meta property="og:title" content="投稿 · loveshed">
+<meta property="og:description" content="给想为 TA 盖房子的人，一套可安装、带战绩的施工工艺。">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="loveshed">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body data-page="submit">
+<div class="sky" aria-hidden="true">
+  <i class="haze h1"></i><i class="haze h2"></i><i class="haze h3"></i>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="brand" href="./" aria-label="loveshed">
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M5 15 16 6l11 9M8 13v12h16V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="13" y="17" width="6" height="5" rx="1" fill="currentColor" opacity=".55"/></svg>
+    loveshed
+  </a>
+  <nav class="nav" aria-label="pages">
+    <a href="skills.html"><span class="zh">工艺库</span><span class="en">Craft</span></a>
+    <a href="qa.html"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a>
+    <a href="submit.html" aria-current="page"><span class="zh">投稿</span><span class="en">Submit</span></a>
+    <a class="nav-gh" href="https://github.com/meixi223-glitch/loveshed">GitHub</a>
+  </nav>
+  <button id="lang-toggle" class="lang" type="button"><span class="zh">EN</span><span class="en">中</span></button>
+</header>
+
+<main id="top">
+
+  <section class="submit page-head" aria-labelledby="submit-h">
+    <h1 id="submit-h" class="sec-h"><span class="zh">投稿</span><span class="en">Submit</span></h1>
+    <p class="sec-sub"><span class="zh">分享一招、补充纠错、提个问题、回答别人——都在这一张表里。先进审核队列，看过才上架。</span><span class="en">Share a tip, fix a card, ask, or answer — all in this one form. Everything goes through review before it's listed.</span></p>
+    <form id="tip-form" class="tip-form reveal" novalidate>
+      <h3><span data-types="tip amend"><span class="zh">直接投稿</span><span class="en">Submit a tip here</span></span><span data-types="question"><span class="zh">提个问题</span><span class="en">Ask a question</span></span><span data-types="answer"><span class="zh">我来回答</span><span class="en">Answer a question</span></span></h3>
+      <p class="tf-sub" data-types="tip amend"><span class="zh">不用注册，不用会 GitHub。投稿先进审核队列，维护者看过才会上架，署名保留；不写昵称就是匿名。</span><span class="en">No account, no GitHub. Your tip goes into a review queue; it is listed only after a maintainer reads it, with your name kept — or leave the name blank to stay anonymous.</span></p>
+      <p class="tf-sub" data-types="question answer"><span class="zh">不用注册。问题和回答都先进审核队列，看过才会出现在提问区，而且一律显示为“匿名姐妹”。</span><span class="en">No account needed. Questions and answers go through the review queue first, and always appear as “an anonymous sister”.</span></p>
+      <div class="tf-type" role="radiogroup" aria-label="类型 / type">
+        <label><input type="radio" name="type" value="tip" checked> <span class="zh">分享经验</span><span class="en">Share a tip</span></label>
+        <label><input type="radio" name="type" value="amend"> <span class="zh">补充 / 纠错</span><span class="en">Add to / fix a card</span></label>
+        <label><input type="radio" name="type" value="question"> <span class="zh">提个问题</span><span class="en">Ask a question</span></label>
+        <label class="tf-answer-radio" hidden><input type="radio" name="type" value="answer" tabindex="-1"> <span class="zh">回答</span><span class="en">Answer</span></label>
+      </div>
+      <div class="tf-answering" data-types="answer">
+        <p class="tf-l"><span class="zh">你在回答</span><span class="en">You're answering</span></p>
+        <p class="tf-qtitle"></p>
+        <button type="button" class="tf-unanswer"><span class="zh">不答了，换成提问</span><span class="en">Never mind — ask instead</span></button>
+        <input type="hidden" name="question_id" value="">
+      </div>
+      <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">对应哪张卡</span><span class="en">Which card</span></span>
+        <select name="skill" required></select></label>
+      <label class="tf-field" data-types="tip amend question"><span class="tf-l"><span data-types="tip amend"><span class="zh">标题</span><span class="en">Title</span></span><span data-types="question"><span class="zh">你的问题</span><span class="en">Your question</span></span> <i>*</i></span>
+        <input name="title" maxlength="200" required data-ph-zh="一句话说清这招" data-ph-en="The trick in one line" data-ph-q-zh="一句话问出来" data-ph-q-en="Your question in one line"></label>
+      <label class="tf-field"><span class="tf-l"><span data-types="tip amend"><span class="zh">怎么做</span><span class="en">How to do it</span></span><span data-types="question"><span class="zh">说说具体情况</span><span class="en">What's going on</span></span><span data-types="answer"><span class="zh">你的回答</span><span class="en">Your answer</span></span> <i>*</i></span>
+        <textarea name="body" rows="7" maxlength="5000" required data-ph-zh="一步一步写，像跟朋友讲。不要贴密钥、IP、真名。" data-ph-en="Step by step, like telling a friend. No keys, IPs or real names." data-ph-q-zh="发生了什么、试过什么、卡在哪里。不要贴密钥、IP、真名。" data-ph-q-en="What happened, what you tried, where you're stuck. No keys, IPs or real names." data-ph-a-zh="你遇到过吗？怎么过来的？像跟姐妹讲就好。不要贴密钥、IP、真名。" data-ph-a-en="Been there? How did you get through? Like telling a friend. No keys, IPs or real names."></textarea>
+        <small class="tf-count" data-for="body">0 / 5000</small></label>
+      <div class="tf-row">
+        <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">实装多久</span><span class="en">In use for</span></span>
+          <input name="duration" maxlength="200" data-ph-zh="比如：两周，每天在用" data-ph-en="e.g. two weeks, daily"></label>
+        <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">昵称（可空 = 匿名）</span><span class="en">Name (blank = anonymous)</span></span>
+          <input name="nickname" maxlength="200" autocomplete="nickname" data-ph-zh="上架时的署名" data-ph-en="Credit shown when listed"></label>
+      </div>
+      <label class="tf-field" data-types="tip amend"><span class="tf-l"><span class="zh">踩过的坑</span><span class="en">What went wrong</span></span>
+        <input name="pitfalls" maxlength="200" data-ph-zh="没踩过就写“暂无”" data-ph-en="“None yet” is fine"></label>
+      <label class="tf-field"><span class="tf-l"><span class="zh">联系方式（可空，只有维护者看得到）</span><span class="en">Contact (optional, maintainers only)</span></span>
+        <input name="contact" maxlength="200" data-ph-zh="想被追问细节再留" data-ph-en="Only if you'd like follow-up questions"></label>
+      <div class="tf-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      <p class="tf-note"><span class="zh">只收文字：不收附件、链接图片和 HTML。</span><span class="en">Text only: no attachments, images or HTML.</span></p>
+      <div class="cta">
+        <button class="btn primary" type="submit"><span class="zh">投进审核队列</span><span class="en">Send to review</span></button>
+        <a class="btn ghost tf-gh" href="https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml"><span class="zh">用 GitHub 的走这边</span><span class="en">On GitHub? Use an issue</span> ↗</a>
+      </div>
+      <p class="tf-status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <!-- ============ CONTRIBUTE ============ -->
+  <section id="contribute" class="contribute" aria-labelledby="contrib-h">
+    <h2 id="contrib-h" class="sec-h"><span class="zh">投稿：两道门</span><span class="en">Submitting: two doors</span></h2>
+    <p class="sec-sub"><span class="zh">给人看的，宽进；给机装的，严审。</span><span class="en">For people: a wide door. For agents: a strict one.</span></p>
+    <div class="doors">
+      <div class="door door-wide reveal">
+        <p class="door-tag"><span class="zh">人读版 tips</span><span class="en">Human-version tips</span></p>
+        <h3><span class="zh">宽进 · 审核合入</span><span class="en">Wide door · reviewed, then merged</span></h3>
+        <p><span class="zh">不用会 git，在上面填表就能投：对应哪张卡、怎么做、用了多久、踩过什么坑。维护者审核后合入，署名保留，也可以匿名。</span><span class="en">No git needed — fill in the form above: which card, how to do it, how long you've used it, what went wrong. A maintainer reviews and merges it; your credit is kept, or stay anonymous.</span></p>
+        <div class="cta">
+          <a class="btn primary" href="#tip-form"><span class="zh">回到表单</span><span class="en">Back to the form</span></a>
+          <a class="btn ghost" href="https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml"><span class="zh">用 GitHub 投</span><span class="en">Via GitHub</span> ↗</a>
+        </div>
+      </div>
+      <div class="door door-strict reveal">
+        <p class="door-tag"><span class="zh">机读版 skill</span><span class="en">Agent-facing skills</span></p>
+        <h3><span class="zh">严审 · 只走 PR</span><span class="en">Strict · PR only</span></h3>
+        <p><span class="zh">skill 会被装进施工 agent 照做，而它手里握着你家的钥匙。接受随手投稿，就等于给每个装了它的家开一个注入口。所以 skill 永远人工逐行严审 + 战绩准入；tips 只给人眼看，才能宽进。</span><span class="en">Skills get installed into builder agents and carried out — by agents that hold the keys to your home. Taking casual submissions would open an injection point into every home that installs them. So skills are always reviewed line by line, with battle-record admission; tips are read only by people, which is why their door can be wide.</span></p>
+        <div class="cta">
+          <a class="btn ghost" href="https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md"><span class="zh">投稿指南</span><span class="en">Contributing guide</span> ↗</a>
+        </div>
+      </div>
+    </div>
+    <h3 class="sub-h"><span class="zh">投 skill：先回答三个问题</span><span class="en">Submitting a skill: answer three questions first</span></h3>
+    <p class="sec-sub"><span class="zh">门槛是故意设高的。三问答不上来，就再养它几天。</span><span class="en">The bar is high on purpose. If you can't answer all three yet, give it a few more days in the wild.</span></p>
+    <ol class="three-q">
+      <li class="reveal"><b><span class="zh">实装几天？</span><span class="en">How long has it run for real?</span></b><span class="zh">在真实的家里跑了多久、跑过几次。</span><span class="en">How long, and how many times, in a real home.</span></li>
+      <li class="reveal"><b><span class="zh">经历过什么事故？</span><span class="en">What broke?</span></b><span class="zh">至少一条带日期的事故：发生了什么、根因、skill 因此改了什么。真没出过事，就写明没出事并说跑了多久。</span><span class="en">At least one dated incident: what happened, the root cause, what the skill changed because of it. If truly nothing broke, say so and say for how long.</span></li>
+      <li class="reveal"><b><span class="zh">换模型还能用吗？</span><span class="en">Does it survive a model switch?</span></b><span class="zh">验证过哪些模型和执行者，哪些还没验证——如实写。</span><span class="en">Which models and executors you've verified, and which you haven't — honestly.</span></li>
+    </ol>
+    <p class="also"><span class="zh">另外两道门：不含真实 IP、端口、密钥、路径和真名；过得了“卧室门检查”。</span><span class="en">Two more gates: no real IPs, ports, keys, paths or names; and it must pass the bedroom-door check.</span></p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/meixi223-glitch/loveshed/blob/main/.github/PULL_REQUEST_TEMPLATE.md"><span class="zh">PR 模板</span><span class="en">PR template</span> ↗</a>
+      <a class="btn ghost" href="https://github.com/meixi223-glitch/loveshed/blob/main/docs/evaluation-card-template.md"><span class="zh">评测卡模板</span><span class="en">Evaluation card template</span> ↗</a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>MIT · built by yumei &amp; Jin</p>
+  <p class="foot-links"><a href="skills.html"><span class="zh">工艺库</span><span class="en">Craft</span></a><span aria-hidden="true">·</span><a href="qa.html"><span class="zh">提问区</span><span class="en">Q&amp;A</span></a><span aria-hidden="true">·</span><a href="submit.html"><span class="zh">投稿</span><span class="en">Submit</span></a><span aria-hidden="true">·</span><a href="https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md"><span class="zh">投稿指南</span><span class="en">Contributing</span> ↗</a></p>
+  <p class="foot-sub"><span class="zh">数据截至 2026-10-03，以仓库内 SKILL.md、EVALUATION.md 与 TIPS.md 为准。</span><span class="en">Data as of 2026-10-03; SKILL.md, EVALUATION.md and TIPS.md in the repo are the source of truth.</span></p>
+</footer>
+</body>
+</html>
