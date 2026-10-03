@@ -4,7 +4,7 @@
    is never hidden behind an old cache; the cache is only the offline fallback.
    Images are cache-first. Cross-origin requests (the submission inbox, GitHub) are never touched.
    keeper.html (the keeper's desk) is never cached or served from cache: always straight from the network. */
-var VERSION = "2026-10-03-p17-keeper";
+var VERSION = "2026-10-03-p17-1-report-fold";
 var CACHE = "loveshed-" + VERSION;
 var PRECACHE = [
   "./", "index.html", "skills.html", "qa.html", "submit.html", "mine.html", "style.css", "app.js", "qa.json", "manifest.webmanifest",

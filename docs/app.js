@@ -913,7 +913,7 @@
           }
           var acts = '<button type="button" class="qa-act" data-act="reply">' + bi(QA.reply) + "</button>";
           if (a.id && (mine || owner) && a.role !== "keeper") acts += '<button type="button" class="qa-act del" data-act="delete">' + bi(QA.del) + "</button>";
-          else if (a.id && a.role !== "keeper") acts += '<button type="button" class="qa-act rep" data-act="report"' + (reported ? " disabled" : "") + ">" + bi(reported ? QA.reported : QA.report) + "</button>";
+          else if (a.id && a.role !== "keeper") acts += '<button type="button" class="qa-act rep" data-act="report" aria-expanded="false"' + (reported ? " disabled" : "") + ">" + bi(reported ? QA.reported : QA.report) + "</button>";
           return (
             '<li class="qa-a' + (a.role === "keeper" ? " keeper" : "") + (a.reply_to ? " is-reply" : "") + (mine ? " mine" : "") + '" id="' + esc(a.id || "") + '" data-aid="' + esc(a.id || "") + '">' +
               quote +
@@ -922,8 +922,8 @@
               '<div class="qa-acts">' + acts + "</div>" +
               '<form class="qa-report" hidden novalidate>' +
                 '<input name="reason" maxlength="200" data-ph-zh="' + esc(QA.repPh.zh) + '" data-ph-en="' + esc(QA.repPh.en) + '" aria-label="' + esc(QA.repPh.zh + " / " + QA.repPh.en) + '">' +
-                '<button type="submit" class="qa-act">' + bi(QA.repSend) + "</button>" +
-                '<button type="button" class="qa-act" data-act="report-cancel">' + bi(QA.cancel) + "</button>" +
+                '<button type="submit" class="qa-act rep-send">' + bi(QA.repSend) + "</button>" +
+                '<button type="button" class="qa-act rep-cancel" data-act="report-cancel">' + bi(QA.cancel) + "</button>" +
               "</form>" +
               '<p class="qa-act-msg" role="status"></p>' +
             "</li>"
@@ -1050,10 +1050,15 @@
             f.scrollIntoView({ behavior: "smooth", block: "center" });
             setTimeout(function () { f.elements.body.focus({ preventScroll: true }); }, 350);
           } else if (act === "report") {
-            li.querySelector(".qa-report").hidden = false;
-            li.querySelector(".qa-report input").focus();
+            // tap toggles; only one report box open at a time
+            var rf = li.querySelector(".qa-report"), open = rf.hidden;
+            thread.querySelectorAll(".qa-report").forEach(function (x) { x.hidden = true; });
+            thread.querySelectorAll('[data-act="report"]').forEach(function (x) { x.setAttribute("aria-expanded", "false"); });
+            rf.hidden = !open; b.setAttribute("aria-expanded", open ? "true" : "false");
+            if (open) rf.elements.reason.focus({ preventScroll: true });
           } else if (act === "report-cancel") {
             li.querySelector(".qa-report").hidden = true;
+            var rb0 = li.querySelector('[data-act="report"]'); if (rb0) rb0.setAttribute("aria-expanded", "false");
           } else if (act === "delete") {
             // in-page two-step confirm (no window.confirm: home-screen shells don't always show it)
             if (!b.classList.contains("arm")) {
