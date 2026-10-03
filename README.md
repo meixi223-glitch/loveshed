@@ -61,11 +61,13 @@ loveshed 试验的是另一种准入规则：
 | `file-staging-pipeline` | 文件暂存管道：暂存 + 签名 ID + 单次消费 | [SKILL.md](skills/file-staging-pipeline/SKILL.md) | [TIPS.md](skills/file-staging-pipeline/TIPS.md) | 需要施工队 |
 
 ```
+CONTRIBUTING.md                 投稿指南（双轨）
 docs/
   evaluation-card-template.md   评测卡模板
   (index.html …)                网站
 .github/
-  PULL_REQUEST_TEMPLATE.md      投稿模板
+  PULL_REQUEST_TEMPLATE.md      skill 投稿模板（PR）
+  ISSUE_TEMPLATE/               tips 投稿表单（issue）
 ```
 
 每个 skill 目录包含：
@@ -80,9 +82,14 @@ docs/
 
 **还没有施工 agent？** 读每个目录里的 `TIPS.md`：同一份工艺的人读版，手把手、不写代码。网站上每张卡也可以在「给人看 / 给机装」之间切换：<https://meixi223-glitch.github.io/loveshed/>
 
-### 投稿
+### 怎么投稿
 
-欢迎投稿，但门槛是故意设高的：**请自带实装天数和事故记录**。没有战绩的 skill 不收。详见 [PR 模板](.github/PULL_REQUEST_TEMPLATE.md)。收录别人的项目时只放链接 + 我们写的评测卡，不搬运代码。
+两道门，详见 [CONTRIBUTING.md](CONTRIBUTING.md)：
+
+- **人读版 tips：宽进。** 不用会 git，填表就行：[投稿 tips](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml) · [补充/纠错已有 tips](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-amend.yml)。维护者审核后合入，署名保留。
+- **机读版 skill：严审。** 只走 PR，请自带评测卡、实装天数和事故记录，没有战绩的不收（见 [PR 模板](.github/PULL_REQUEST_TEMPLATE.md)）。理由很简单：skill 会被装进施工 agent 照做，接受投稿就等于开放注入面，所以它永远人工严审 + 战绩准入；tips 只给人眼看，风险低，可以宽进。
+
+收录别人的项目时只放链接 + 我们写的评测卡，不搬运代码。
 
 ### 出处
 
@@ -143,11 +150,13 @@ A self-built home usually has two kinds of AI:
 | `file-staging-pipeline` | File staging pipeline: stage + signed ID + consume once | [SKILL.md](skills/file-staging-pipeline/SKILL.md) | [TIPS.md](skills/file-staging-pipeline/TIPS.md) | Needs a crew |
 
 ```
+CONTRIBUTING.md                 Contributing guide (two tracks)
 docs/
   evaluation-card-template.md   Evaluation card template
   (index.html …)                The website
 .github/
-  PULL_REQUEST_TEMPLATE.md      Submission template
+  PULL_REQUEST_TEMPLATE.md      Skill submission template (PR)
+  ISSUE_TEMPLATE/               Tip submission forms (issues)
 ```
 
 Each skill directory contains:
@@ -162,9 +171,14 @@ Copy the skill directories you need into wherever your builder agent loads skill
 
 **No builder agent yet?** Read the `TIPS.md` in each folder: the human version of the same craft, step by step, no code. On the website every card can also switch between "For humans" and "For agents": <https://meixi223-glitch.github.io/loveshed/>
 
-### Contributing
+### How to contribute
 
-Contributions are welcome, but the bar is deliberately high: **bring your days-in-production and your incident log.** Skills without a battle record are not accepted. See the [PR template](.github/PULL_REQUEST_TEMPLATE.md). When listing third-party projects we only link and add our own evaluation card; we never copy code.
+Two doors; details in [CONTRIBUTING.md](CONTRIBUTING.md):
+
+- **Human-version tips: wide door.** No git needed, just a form: [Submit a tip](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml) · [Add to / fix an existing tip](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-amend.yml). A maintainer reviews and merges it, with your credit kept.
+- **Agent-facing skills: strict.** PR only; bring an evaluation card, days in production and an incident log. No battle record, no listing (see the [PR template](.github/PULL_REQUEST_TEMPLATE.md)). The reason is simple: skills get installed into builder agents and carried out, so accepting open submissions would open an injection surface. Skills are always human-reviewed with battle-record admission; tips are only read by people, so the risk is low and the door can be wide.
+
+When listing third-party projects we only link and add our own evaluation card; we never copy code.
 
 ### Provenance
 

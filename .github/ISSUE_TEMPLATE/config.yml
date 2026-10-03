@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 投 skill（给 agent 执行的 SKILL.md）/ Contribute a skill (agent-facing SKILL.md)
+    url: https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md#skill
+    about: skill 只走 PR + 评测卡 + 实装战绩严审，不经 issue 收稿。/ Skills go through PR + evaluation card + battle record only, never via issues.

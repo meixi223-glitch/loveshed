@@ -1,0 +1,89 @@
+name: 投稿 tips / Submit a tip
+description: 给人读版 TIPS.md 投一条你亲手用过的经验。不用会 git，填表就行。/ Share a hands-on tip for the human version (TIPS.md). No git needed — just fill in the form.
+title: "[tip] "
+labels: ["tip", "needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **谢谢你愿意分享。** 这张表只收**给人看的 tips**（`TIPS.md`）。每条投稿都会经维护者审核，**审核通过后由维护者合入**正文，**署名会保留**。我们可能会做轻微的文字整理或脱敏，改动会在本 issue 里告诉你。
+
+        **Thank you for sharing.** This form is for **human-readable tips** (`TIPS.md`) only. Every submission is reviewed; **once approved, a maintainer merges it** into the text, and **your credit is kept**. We may lightly edit wording or scrub private details, and we'll tell you what changed in this issue.
+
+        > 想投给 agent 执行的 `SKILL.md`？那条路更严：请走 PR + 评测卡，见 [CONTRIBUTING](https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md)。
+        > Want to contribute an agent-facing `SKILL.md`? That door is stricter: PR + evaluation card, see [CONTRIBUTING](https://github.com/meixi223-glitch/loveshed/blob/main/CONTRIBUTING.md).
+
+  - type: dropdown
+    id: skill
+    attributes:
+      label: 对应哪个 skill / Which skill is this about?
+      description: 不属于任何一个就选「新主题」，并在下一栏写主题名。/ If none fits, pick "New topic" and name it below.
+      options:
+        - window-handoff（换窗交接 / context-window handoff）
+        - release-baseline（发版基线与回滚 / release baseline & rollback）
+        - degradation-checkup（降智自检 / degradation self-check）
+        - memory-migration（记忆搬家 / memory migration）
+        - chat-frontend（自建聊天前端 / self-built chat frontend）
+        - voice-integration（语音接入 / voice）
+        - backfill-rate-limit（回填限速与幂等 / backfill & rate limits）
+        - amnesia-rescue（失忆抢救 / amnesia rescue）
+        - worker-dispatch-acceptance（派单验收 / worker dispatch & acceptance）
+        - file-staging-pipeline（文件暂存管道 / file staging pipeline）
+        - 新主题 / New topic
+    validations:
+      required: true
+
+  - type: input
+    id: new_topic
+    attributes:
+      label: 新主题名（选了「新主题」才填）/ New topic name (only if you picked "New topic")
+      placeholder: 例：给 TA 设生日提醒 / e.g. birthday reminders for your companion
+
+  - type: textarea
+    id: tip
+    attributes:
+      label: tips 正文 / The tip
+      description: 用人话写，让一个不写代码的人也能照着做。能分步就分步。/ Plain language, so a non-coder can follow it. Steps if you can.
+      placeholder: |
+        1. ……
+        2. ……
+    validations:
+      required: true
+
+  - type: input
+    id: duration
+    attributes:
+      label: 实装多久 / How long have you used it for real?
+      description: 在你自己家里用了多久、用过几次。/ How long, and how many times, in your own setup.
+      placeholder: 例：两周，每天换窗都用 / e.g. two weeks, every window switch
+    validations:
+      required: true
+
+  - type: textarea
+    id: pitfalls
+    attributes:
+      label: 踩过什么坑 / What went wrong along the way?
+      description: 坑比成功经验更值钱。真没踩过就写「暂未踩坑」。/ Pitfalls are worth more than wins. If none yet, say so.
+    validations:
+      required: true
+
+  - type: input
+    id: credit
+    attributes:
+      label: 署名（可选）/ Credit (optional)
+      description: 合入时写在这条 tips 旁边。留空 = 匿名署名；但请注意你的 GitHub 用户名在本 issue 里仍然可见。/ Shown next to your tip when merged. Leave blank to be credited as anonymous — note that your GitHub username is still visible on this issue.
+      placeholder: 例：某某和 TA / e.g. "Sam & their companion"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 自查 / Checklist
+      options:
+        - label: 不含真实 IP、端口、密钥、token、内部路径、真名 / No real IPs, ports, keys, tokens, internal paths or real names
+          required: true
+        - label: 不含亲密对话原文 / No intimate conversation content
+          required: true
+        - label: 卧室门检查：只讲怎么盖房子，不教怎么改 TA 的人设或对话 / Bedroom-door check — about building the home, not about changing the companion's persona or conversation
+          required: true
+        - label: 我知道投稿要经审核，可能被整理措辞，合入后以 MIT 协议发布 / I understand submissions are reviewed, may be lightly edited, and are released under MIT once merged
+          required: true

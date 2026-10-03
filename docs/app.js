@@ -155,6 +155,7 @@
     machine:  { zh: "给机装", en: "For agents" },
     flipHuman:{ zh: "翻面看步骤", en: "Flip for the steps" },
     tips:     { zh: "人读版全文", en: "Full human version" },
+    addTip:   { zh: "补充 / 纠错这条", en: "Add to / fix this" },
     brief:    { zh: "发给施工队的话", en: "What to send your crew" },
     copy:     { zh: "复制", en: "Copy" },
     copied:   { zh: "已复制", en: "Copied" }
@@ -205,6 +206,12 @@
     );
   }
 
+  // Prefilled "add to / fix an existing tip" issue form (.github/ISSUE_TEMPLATE/tip-amend.yml).
+  function amendUrl(id) {
+    return REPO + "/issues/new?template=tip-amend.yml&title=" + encodeURIComponent("[tip-fix] " + id + ": ") +
+           "&tip_file=" + encodeURIComponent("skills/" + id + "/TIPS.md");
+  }
+
   function humanPane(s, base) {
     var b = brief(base + "SKILL.md");
     var steps = s.tips.zh.map(function (zh, k) { return "<li>" + bi({ zh: zh, en: s.tips.en[k] }) + "</li>"; }).join("");
@@ -220,6 +227,7 @@
         '<div class="links">' +
           '<a href="' + base + 'TIPS.md" tabindex="-1">' + bi(LABELS.tips) + " ↗</a>" +
           (s.mode === "diy" ? "" : '<a href="' + base + 'SKILL.md" tabindex="-1">SKILL.md ↗</a>') +
+          '<a class="add-tip" href="' + amendUrl(s.id) + '" tabindex="-1">' + bi(LABELS.addTip) + " ↗</a>" +
         "</div>" +
       "</div>"
     );

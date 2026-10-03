@@ -1,0 +1,69 @@
+name: 补充/纠错 tips / Add to or fix an existing tip
+description: 给已有的人读版 TIPS.md 补一条经验，或指出哪里不对、过时了。/ Add to, or correct, an existing human-readable TIPS.md.
+title: "[tip-fix] "
+labels: ["tip-fix", "needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **谢谢你帮忙把它变得更准。** 每条补充/纠错都会经维护者审核，**审核通过后由维护者合入**，**署名会保留**。
+
+        **Thanks for helping make it more accurate.** Every addition or correction is reviewed; **once approved, a maintainer merges it**, and **your credit is kept**.
+
+  - type: input
+    id: tip_file
+    attributes:
+      label: 哪一份 TIPS.md / Which TIPS.md?
+      description: 写 skill 名或文件路径即可。/ The skill name or the file path is enough.
+      placeholder: skills/window-handoff/TIPS.md
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 类型 / Kind
+      options:
+        - 补充 / Addition
+        - 纠错 / Correction
+        - 已过时 / Outdated
+    validations:
+      required: true
+
+  - type: textarea
+    id: where
+    attributes:
+      label: 原文是哪一句 / Which part?
+      description: 补充可以留空；纠错请贴出原句或写第几步。/ Optional for additions; for corrections, quote the line or name the step.
+
+  - type: textarea
+    id: change
+    attributes:
+      label: 你的补充或改法 / Your addition or fix
+      description: 用人话写，让不写代码的人也能照做。/ Plain language a non-coder can follow.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 你是怎么知道的 / How do you know?
+      description: 实装了多久、踩过什么坑、在什么环境里验证的。/ How long you've used it, what went wrong, where you verified it.
+    validations:
+      required: true
+
+  - type: input
+    id: credit
+    attributes:
+      label: 署名（可选）/ Credit (optional)
+      description: 留空 = 匿名署名；你的 GitHub 用户名在本 issue 里仍然可见。/ Blank = anonymous credit; your GitHub username is still visible on this issue.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 自查 / Checklist
+      options:
+        - label: 不含真实 IP、端口、密钥、token、内部路径、真名，也不含亲密对话原文 / No real IPs, ports, keys, tokens, internal paths, real names or intimate conversation content
+          required: true
+        - label: 我知道投稿要经审核，可能被整理措辞，合入后以 MIT 协议发布 / I understand submissions are reviewed, may be lightly edited, and are released under MIT once merged
+          required: true

@@ -137,7 +137,7 @@ h1 em {
 .sec-sub { margin: 10px auto 0; text-align: center; color: var(--ink-soft); font-size: 15px; max-width: 32em; }
 
 /* glass surface shared by rules / routes / cards */
-.rule, .route, .face, .install, .three-q li {
+.rule, .route, .face, .install, .tip-invite, .door, .three-q li {
   background: var(--glass);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -280,9 +280,36 @@ h1 em {
 @media (min-width: 860px) { .three-q { grid-template-columns: repeat(3, 1fr); } }
 .also { text-align: center; color: var(--ink-soft); font-size: 14px; margin: 18px auto 0; max-width: 34em; }
 
+/* tips invite under the cards, and the two doors */
+.tip-invite { margin-top: 14px; padding: 20px 22px; display: grid; gap: 4px; position: relative; overflow: hidden; }
+.tip-invite::before {
+  content: ""; position: absolute; right: -60px; top: -60px; width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 217, 168, .55), transparent 65%); pointer-events: none;
+}
+.ti-ico { font-size: 22px; line-height: 1; color: var(--rose); }
+.tip-invite h3 { margin: 0 0 6px; font: 600 17px/1.4 var(--serif); }
+.tip-invite p { margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+.tip-invite .cta { justify-content: flex-start; margin-top: 12px; }
+@media (min-width: 860px) {
+  .tip-invite { grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; }
+  .tip-invite .cta { margin-top: 0; flex-wrap: nowrap; }
+}
+.doors { display: grid; gap: 14px; margin-top: 26px; }
+@media (min-width: 860px) { .doors { grid-template-columns: 1fr 1fr; } }
+.door { padding: 22px 22px 20px; display: flex; flex-direction: column; }
+.door h3 { margin: 4px 0 8px; font: 600 19px/1.4 var(--serif); }
+.door p { margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+.door .cta { justify-content: flex-start; margin-top: auto; padding-top: 16px; }
+.door-tag { font-size: 12.5px !important; letter-spacing: .14em; color: var(--ink-faint) !important; }
+.door-wide { border-color: rgba(255, 217, 168, .95); }
+.door-strict { border-style: dashed; border-color: var(--pencil); background: rgba(255, 255, 255, .38); }
+.sub-h { margin: 44px 0 0; font: 600 clamp(19px, 4.4vw, 24px)/1.35 var(--serif); text-align: center; }
+
 /* ---------- footer ---------- */
 .foot { text-align: center; padding: 64px 20px calc(36px + env(safe-area-inset-bottom)); color: var(--ink-soft); }
 .foot p { margin: 0; font: 15px/1.6 var(--serif); letter-spacing: .04em; }
+.foot .foot-links { margin-top: 10px; font: 14px/1.6 var(--sans); display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; color: var(--ink-faint); }
+.foot-links a { color: var(--violet); text-decoration: none; border-bottom: 1px dashed var(--pencil); }
 .foot .foot-sub { margin-top: 6px; font: 12px/1.6 var(--sans); color: var(--ink-faint); letter-spacing: 0; }
 
 /* ---------- reveal ---------- */
