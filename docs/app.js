@@ -3,6 +3,8 @@
   "use strict";
 
   var REPO = "https://github.com/meixi223-glitch/loveshed";
+  // Direct-submission inbox: accepted tips land in a review queue, never published automatically.
+  var INTAKE = "https://claude-api.ykumi.com/loveshed/submit";
 
   // days / approx / incidents are taken from each skill's frontmatter
   // (battle-tested-days) and the incident table in EVALUATION.md.
@@ -206,12 +208,6 @@
     );
   }
 
-  // Prefilled "add to / fix an existing tip" issue form (.github/ISSUE_TEMPLATE/tip-amend.yml).
-  function amendUrl(id) {
-    return REPO + "/issues/new?template=tip-amend.yml&title=" + encodeURIComponent("[tip-fix] " + id + ": ") +
-           "&tip_file=" + encodeURIComponent("skills/" + id + "/TIPS.md");
-  }
-
   function humanPane(s, base) {
     var b = brief(base + "SKILL.md");
     var steps = s.tips.zh.map(function (zh, k) { return "<li>" + bi({ zh: zh, en: s.tips.en[k] }) + "</li>"; }).join("");
@@ -227,7 +223,7 @@
         '<div class="links">' +
           '<a href="' + base + 'TIPS.md" tabindex="-1">' + bi(LABELS.tips) + " ↗</a>" +
           (s.mode === "diy" ? "" : '<a href="' + base + 'SKILL.md" tabindex="-1">SKILL.md ↗</a>') +
-          '<a class="add-tip" href="' + amendUrl(s.id) + '" tabindex="-1">' + bi(LABELS.addTip) + " ↗</a>" +
+          '<a class="add-tip" href="#tip-form" data-amend="' + s.id + '" tabindex="-1">' + bi(LABELS.addTip) + "</a>" +
         "</div>" +
       "</div>"
     );
@@ -274,12 +270,14 @@
 
   /* ---------- language ---------- */
   var root = document.documentElement;
+  var langHooks = [];
   function setLang(l) {
     root.setAttribute("data-lang", l);
     root.setAttribute("lang", l === "zh" ? "zh-CN" : "en");
     try { localStorage.setItem("loveshed-lang", l); } catch (e) {}
     var b = document.getElementById("lang-toggle");
     if (b) b.setAttribute("aria-label", l === "zh" ? "Switch to English" : "切换到中文");
+    langHooks.forEach(function (f) { f(l); });
   }
   var saved = null;
   try { saved = localStorage.getItem("loveshed-lang"); } catch (e) {}
@@ -298,6 +296,8 @@
     list.addEventListener("click", function (e) {
       var lb = e.target.closest("button[data-lens]");
       if (lb) { setLens(lb.closest(".card"), lb.getAttribute("data-lens")); return; }
+      var am = e.target.closest("a[data-amend]");
+      if (am) { e.preventDefault(); openForm("amend", am.getAttribute("data-amend")); return; }
       var cp = e.target.closest(".copy");
       if (cp) { copyBrief(cp); return; }
       var btn = e.target.closest(".flip");
@@ -352,6 +352,124 @@
       if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
       else fallback();
     }
+
+    /* ---------- direct submission form ---------- */
+    var form = document.getElementById("tip-form");
+    var fStatus = form.querySelector(".tf-status");
+    var fBtn = form.querySelector("button[type=submit]");
+    var fSkill = form.elements.skill;
+    var GAP_MS = 60 * 1000;          // local throttle between successful sends
+    var MSG = {
+      ok:      { zh: "已进审核队列，通过后上架并保留署名。谢谢你！", en: "In the review queue. Once approved it goes up with your credit kept. Thank you!" },
+      sending: { zh: "正在投递…", en: "Sending…" },
+      wait:    { zh: "刚投过一条，歇一分钟再投吧。", en: "You just sent one — give it a minute." },
+      dup:     { zh: "这条刚刚已经投过了，不用重复投。", en: "This exact tip was just sent — no need to send it again." },
+      need:    { zh: "标题和“怎么做”是必填的。", en: "Title and “How to do it” are required." },
+      rate:    { zh: "这一小时投得有点多了，过一会儿再来，或者", en: "That's a lot for one hour — try again later, or " },
+      markup:  { zh: "里面有像 HTML 的内容（比如尖括号标签），请改成纯文字。", en: "Something there looks like HTML (angle-bracket tags) — please use plain text." },
+      invalid: { zh: "有一栏没通过检查，请看看是不是太长了。", en: "One field didn't pass the check — is it too long?" },
+      down:    { zh: "投稿口暂时连不上。内容别丢，可以", en: "The inbox can't be reached right now. Don't lose your text — you can " },
+      gh:      { zh: "改用 GitHub issue 投稿 ↗", en: "submit it as a GitHub issue instead ↗" },
+      newCard: { zh: "新的一招（还没有对应的卡）", en: "Something new (no card yet)" }
+    };
+    function skillOptions(l) {
+      var cur = fSkill.value;
+      var isAmend = form.elements.type.value === "amend";
+      var opts = SKILLS.map(function (s) { return '<option value="' + s.id + '">' + esc(s.scene[l] + " · " + s.id) + "</option>"; });
+      if (!isAmend) opts.unshift('<option value="new">' + esc(MSG.newCard[l]) + "</option>");
+      fSkill.innerHTML = opts.join("");
+      if (cur && fSkill.querySelector('option[value="' + cur + '"]')) fSkill.value = cur;
+    }
+    function formLang(l) {
+      skillOptions(l);
+      form.querySelectorAll("[data-ph-zh]").forEach(function (el) { el.placeholder = el.getAttribute("data-ph-" + l); });
+    }
+    langHooks.push(formLang);
+    formLang(root.getAttribute("data-lang"));
+    form.querySelectorAll("input[name=type]").forEach(function (r) {
+      r.addEventListener("change", function () { skillOptions(root.getAttribute("data-lang")); });
+    });
+    var bodyCount = form.querySelector('.tf-count[data-for="body"]');
+    form.elements.body.addEventListener("input", function () { bodyCount.textContent = form.elements.body.value.length + " / 5000"; });
+
+    function openForm(type, skill) {
+      form.querySelector('input[name=type][value="' + type + '"]').checked = true;
+      skillOptions(root.getAttribute("data-lang"));
+      if (skill) fSkill.value = skill;
+      form.classList.add("in");
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(function () { form.elements.title.focus({ preventScroll: true }); }, 500);
+    }
+    function ghUrl(d) {
+      var amend = d.type === "amend";
+      var u = REPO + "/issues/new?template=" + (amend ? "tip-amend.yml" : "tip-submit.yml") +
+              "&title=" + encodeURIComponent((amend ? "[tip-fix] " : "[tip] ") + (d.skill !== "new" ? d.skill + ": " : "") + d.title);
+      if (amend) u += "&tip_file=" + encodeURIComponent("skills/" + d.skill + "/TIPS.md");
+      return u;
+    }
+    function say(kind, msg, link) {
+      fStatus.className = "tf-status " + kind;
+      fStatus.innerHTML = bi(msg) + (link ? ' <a href="' + esc(link) + '" target="_blank" rel="noopener">' + bi(MSG.gh) + "</a>" : "");
+    }
+    function hash(str) {
+      var h = 5381;
+      for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+      return String(h);
+    }
+    function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+    var busy = false;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (busy) return;
+      var d = {};
+      ["type", "skill", "title", "body", "duration", "pitfalls", "nickname", "contact", "website"].forEach(function (k) {
+        d[k] = (form.elements[k].value || "").trim();
+      });
+      form.querySelectorAll(".bad").forEach(function (el) { el.classList.remove("bad"); });
+      if (!d.title || !d.body) {
+        (!d.title ? form.elements.title : form.elements.body).classList.add("bad");
+        return say("err", MSG.need);
+      }
+      var h = hash(d.skill + "\n" + d.title + "\n" + d.body);
+      if (store("loveshed-tip-last-hash") === h) return say("err", MSG.dup);
+      var last = +store("loveshed-tip-last-at") || 0;
+      if (Date.now() - last < GAP_MS) return say("err", MSG.wait);
+
+      busy = true; fBtn.disabled = true; say("", MSG.sending);
+      var ctl = "AbortController" in window ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
+      fetch(INTAKE, {
+        method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(d), signal: ctl ? ctl.signal : undefined
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; });
+      }).then(function (res) {
+        if (res.status === 201 && res.j.ok) {
+          store("loveshed-tip-last-at", String(Date.now()));
+          store("loveshed-tip-last-hash", h);
+          form.classList.add("sent");
+          say("ok", MSG.ok);
+          ["title", "body", "duration", "pitfalls"].forEach(function (k) { form.elements[k].value = ""; });
+          bodyCount.textContent = "0 / 5000";
+          return;
+        }
+        if (res.status === 429) return say("err", MSG.rate, ghUrl(d));
+        if (res.status === 400 && res.j.field && form.elements[res.j.field]) {
+          form.elements[res.j.field].classList.add("bad");
+          return say("err", res.j.reason === "markup_not_allowed" ? MSG.markup : MSG.invalid);
+        }
+        say("err", MSG.down, ghUrl(d));
+      }).catch(function () {
+        say("err", MSG.down, ghUrl(d));
+      }).then(function () {
+        clearTimeout(timer);
+        // keep the button resting a moment so a double tap can't send twice
+        setTimeout(function () { busy = false; fBtn.disabled = false; }, 2500);
+      });
+    });
+    form.addEventListener("input", function () { form.classList.remove("sent"); });
 
     /* ---------- routes ---------- */
     var chips = document.querySelectorAll("[data-route]");

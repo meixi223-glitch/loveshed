@@ -11,7 +11,7 @@ loveshed 有两种读者，所以有两道门。
 | | 人读版 `TIPS.md` | 机读版 `SKILL.md` |
 |---|---|---|
 | 读者 | 人 | 施工 agent（Claude Code / Codex / 各类 worker） |
-| 投稿方式 | 填 issue 表单，不用会 git | 提 PR |
+| 投稿方式 | 官网直接填表（不用注册），或填 issue 表单 | 提 PR |
 | 门槛 | 宽进：用过、踩过坑、说得清就行 | 严审：评测卡 + 实装天数 + 带日期的事故记录 |
 | 谁合入 | 维护者审核后合入，署名保留 | 维护者逐行审核后合并 |
 
@@ -30,9 +30,9 @@ loveshed 有两种读者，所以有两道门。
 
 ### 人读版 tips：开放投稿，审核合入
 
-1. 打开 [投稿 tips 表单](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml)，或者 [补充/纠错已有 tips](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-amend.yml)。
+1. 最简单：在 [官网的投稿表单](https://loveshed.org/#tip-form) 直接填，不用注册、不用会 GitHub，投稿先进审核队列，**不会自动发布**。会用 GitHub 的也可以打开 [投稿 tips 表单](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml)，或者 [补充/纠错已有 tips](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-amend.yml)。
 2. 填：对应哪个 skill（或新主题）、tips 正文、实装多久、踩过什么坑、署名（可选，留空即匿名）。
-3. 维护者审核。可能会在 issue 里追问、做轻微的文字整理或脱敏，改了什么会告诉你。
+3. 维护者审核。可能会在 issue 里（官网投稿则通过你留的联系方式，没留就不追问）追问、做轻微的文字整理或脱敏，改了什么会告诉你。
 4. 通过后由维护者合入对应 `TIPS.md` 的「社区补充」部分，**署名保留**；新主题积累够了可能长成新的 skill（那时会走下面的严审流程，由维护者补评测卡）。
 
 审核会看：
@@ -72,7 +72,7 @@ loveshed has two kinds of readers, so it has two doors.
 | | Human version `TIPS.md` | Agent version `SKILL.md` |
 |---|---|---|
 | Reader | People | Builder agents (Claude Code / Codex / workers) |
-| How to submit | Fill in an issue form — no git needed | Open a PR |
+| How to submit | Fill in the form on the website (no account), or an issue form | Open a PR |
 | Bar | Wide door: you've used it, hit a snag, can explain it | Strict: evaluation card + days in production + dated incidents |
 | Who merges | A maintainer, after review, with your credit kept | A maintainer, after a line-by-line review |
 
@@ -91,7 +91,7 @@ We don't think this is being conservative. For a library whose content agents ca
 
 ### Human-version tips: open submissions, reviewed before merge
 
-1. Open the [Submit a tip form](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml), or [Add to / fix an existing tip](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-amend.yml).
+1. Easiest: use the [form on the website](https://loveshed.org/#tip-form) — no account, no GitHub. Submissions go into a review queue and are **never published automatically**. If you use GitHub, you can also open the [Submit a tip form](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml), or [Add to / fix an existing tip](https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-amend.yml).
 2. Fill in: which skill (or a new topic), the tip, how long you've used it, what went wrong, and a credit line (optional; blank means anonymous).
 3. A maintainer reviews it. We may ask follow-up questions, lightly edit wording or scrub private details, and we'll tell you what changed.
 4. Once approved, a maintainer merges it into the "Community tips" part of that `TIPS.md`, **with your credit kept**. A new topic that gathers enough tips may grow into a skill; that goes through the strict process below, with the maintainers writing the evaluation card.
