@@ -49,9 +49,16 @@ loveshed 试验的是另一种准入规则：
 
 ```
 skills/
-  window-handoff/        换窗交接协议：便签 + 唤醒口令
-  release-baseline/      发版基线与回滚：git init + 标签 + 热备
-  degradation-checkup/   模型"降智"自检清单
+  window-handoff/              换窗交接协议：便签 + 唤醒口令
+  release-baseline/            发版基线与回滚：git init + 标签 + 热备
+  degradation-checkup/         模型"降智"自检清单
+  memory-migration/            记忆搬家：导出、校验、导入、对账
+  chat-frontend/               自建聊天前端：消息桥 + 渐进增强 + 单一权威副本
+  voice-integration/           语音接入：TTS 语音条下发 + ASR 转写
+  backfill-rate-limit/         回填限速与幂等：游标、幂等键、错峰、分段对账
+  amnesia-rescue/              失忆抢救实录：定位取数故障 → 修复 → 回填 → 重生成日印象
+  worker-dispatch-acceptance/  派单验收规范：边界、红线、报告格式、一库一队
+  file-staging-pipeline/       文件暂存管道：暂存 + 签名 ID + 单次消费
 docs/
   evaluation-card-template.md   评测卡模板
 .github/
@@ -118,9 +125,16 @@ A self-built home usually has two kinds of AI:
 
 ```
 skills/
-  window-handoff/        Context-window handoff: note + wake phrase
-  release-baseline/      Release baseline & rollback: git init + tag + hot backup
-  degradation-checkup/   Model "degradation" self-check
+  window-handoff/              Context-window handoff: note + wake phrase
+  release-baseline/            Release baseline & rollback: git init + tag + hot backup
+  degradation-checkup/         Model "degradation" self-check
+  memory-migration/            Memory migration: export, verify, import, reconcile
+  chat-frontend/               Self-built chat frontend: message bridge + progressive enhancement + one authoritative copy
+  voice-integration/           Voice: TTS voice notes out + ASR transcripts in
+  backfill-rate-limit/         Backfill with rate limits & idempotency: cursors, keys, staggering, segmented reconciliation
+  amnesia-rescue/              Amnesia rescue: locate selection fault → fix → backfill → regenerate impressions
+  worker-dispatch-acceptance/  Worker dispatch & acceptance: scope, red lines, report format, one crew per repo
+  file-staging-pipeline/       File staging pipeline: stage + signed ID + consume once
 docs/
   evaluation-card-template.md   Evaluation card template
 .github/
