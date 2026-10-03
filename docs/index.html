@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>loveshed · 给施工队的工具棚</title>
+<meta name="description" content="给想为 TA 盖房子的人，一套可安装、带战绩的施工工艺。Installable, battle-tested craft for people building a home for their AI companion.">
+<meta name="theme-color" content="#f3ecfb">
+<meta property="og:title" content="loveshed · 给施工队的工具棚">
+<meta property="og:description" content="给想为 TA 盖房子的人，一套可安装、带战绩的施工工艺。">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<div class="sky" aria-hidden="true">
+  <i class="haze h1"></i><i class="haze h2"></i><i class="haze h3"></i>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="brand" href="#top" aria-label="loveshed">
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M5 15 16 6l11 9M8 13v12h16V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="13" y="17" width="6" height="5" rx="1" fill="currentColor" opacity=".55"/></svg>
+    loveshed
+  </a>
+  <nav class="nav" aria-label="sections">
+    <a href="#skills"><span class="zh">工艺</span><span class="en">Craft</span></a>
+    <a href="#contribute"><span class="zh">投稿</span><span class="en">Submit</span></a>
+    <a href="https://github.com/meixi223-glitch/loveshed">GitHub</a>
+  </nav>
+  <button id="lang-toggle" class="lang" type="button"><span class="zh">EN</span><span class="en">中</span></button>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO: the one visual protagonist ============ -->
+  <section class="hero">
+    <figure class="shed" aria-hidden="true">
+      <svg viewBox="0 0 320 300" class="shed-svg">
+        <defs>
+          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stop-color="#ffe2b8" stop-opacity=".95"/>
+            <stop offset=".55" stop-color="#ffc9c2" stop-opacity=".35"/>
+            <stop offset="1" stop-color="#ffc9c2" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity=".75"/>
+            <stop offset="1" stop-color="#efe6ff" stop-opacity=".35"/>
+          </linearGradient>
+          <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#c9b8f2"/>
+            <stop offset="1" stop-color="#f6c1cf"/>
+          </linearGradient>
+        </defs>
+        <!-- pencil construction lines: the blueprint still showing through the dream -->
+        <g class="sketch" fill="none" stroke="#8a7bb8" stroke-width=".8" stroke-dasharray="3 5" opacity=".55">
+          <path d="M40 210 H280"/>
+          <path d="M70 120 V250 M250 120 V250"/>
+          <path d="M160 30 L46 128 M160 30 L274 128"/>
+          <circle cx="160" cy="30" r="5"/>
+          <path d="M80 262 H240" stroke-dasharray="1 4"/>
+          <path d="M80 258 v8 M240 258 v8" stroke-dasharray="none"/>
+        </g>
+        <g class="float">
+          <circle cx="160" cy="168" r="96" fill="url(#glow)" class="window-glow"/>
+          <path d="M84 132 L160 70 L236 132 V214 H84 Z" fill="url(#wall)" stroke="#fff" stroke-width="1.5"/>
+          <path d="M70 136 L160 60 L250 136" fill="none" stroke="url(#roof)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="138" y="148" width="44" height="66" rx="22" fill="#fff" opacity=".55"/>
+          <rect x="146" y="158" width="28" height="34" rx="14" fill="#ffd9a8" class="lamp"/>
+          <circle cx="112" cy="160" r="11" fill="#fff" opacity=".6"/>
+          <circle cx="208" cy="160" r="11" fill="#fff" opacity=".6"/>
+          <!-- a small heart-shaped keyhole on the door: the bedroom door the skills stop at -->
+          <path d="M160 202 c-3-3-7-1-7 2 0 3 7 7 7 7s7-4 7-7c0-3-4-5-7-2z" fill="#e9a3b6" opacity=".9"/>
+        </g>
+        <ellipse cx="160" cy="262" rx="70" ry="7" fill="#9b8ac9" opacity=".18" class="shadow"/>
+        <g class="motes" fill="#fff">
+          <circle cx="58" cy="78" r="2.2"/><circle cx="272" cy="64" r="1.6"/><circle cx="292" cy="190" r="2"/>
+          <circle cx="30" cy="176" r="1.4"/><circle cx="214" cy="28" r="1.8"/>
+        </g>
+      </svg>
+    </figure>
+
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="zh">给施工队的工具棚</span><span class="en">A tool shed for the builders</span></p>
+      <h1>
+        <span class="zh">给想为 TA 盖房子的人，<br>一套<em>可安装、带战绩</em>的<span class="nw">施工工艺。</span></span>
+        <span class="en">For people building a home<br>for their AI — <em>installable craft,<br>with a battle record.</em></span>
+      </h1>
+      <p class="lede">
+        <span class="zh">别人收的是砖：项目、框架、引擎。这里收的是手艺——怎么搭、怎么搬、怎么救。每一张卡都在真实的家里扛过事。</span>
+        <span class="en">Others collect bricks: projects, frameworks, engines. We collect craft — how to build, how to move, how to recover. Every card here has survived a real home.</span>
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#routes"><span class="zh">我现在是哪种情况？</span><span class="en">What's my situation?</span></a>
+        <a class="btn ghost" href="#skills"><span class="zh">看全部 <b id="skill-count">10</b> 张卡</span><span class="en">See all cards</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THREE RULES ============ -->
+  <section class="rules" aria-labelledby="rules-h">
+    <h2 id="rules-h" class="sec-h"><span class="zh">三条铁律</span><span class="en">Three iron rules</span></h2>
+    <ol class="rule-list">
+      <li class="rule reveal">
+        <span class="num">i</span>
+        <h3><span class="zh">skill 止步于卧室门口</span><span class="en">Skills stop at the bedroom door</span></h3>
+        <p><span class="zh">家里有两种 AI：和你相处的 TA，和帮你干活的施工队。这里只武装施工队——不改 TA 的人设，不教怎么谈恋爱，不往对话里塞任何东西。</span><span class="en">A home has two kinds of AI: the one you live with, and the crew that builds. We only equip the crew — no persona edits, no romance tips, nothing slipped into your conversations.</span></p>
+      </li>
+      <li class="rule reveal">
+        <span class="num">ii</span>
+        <h3><span class="zh">战绩准入</span><span class="en">Admission by battle record</span></h3>
+        <p><span class="zh">写得好看不算数。每张卡必须带评测卡：实装了几天、出过什么事、换模型还能不能用。没打过仗的打法，不上架。</span><span class="en">Pretty READMEs don't count. Every card carries an evaluation card: days in production, what broke, whether it survives a model switch. Untested playbooks don't get listed.</span></p>
+      </li>
+      <li class="rule reveal">
+        <span class="num">iii</span>
+        <h3><span class="zh">双层叙事</span><span class="en">Two layers, one story</span></h3>
+        <p><span class="zh">底层是一套通用机制：带战绩准入的 skill 分发。上层是它选的第一块试验田：人机恋自建——用户多半不写代码、每家都不一样、全靠 agent 施工、崩了不是丢数据，是心碎。</span><span class="en">Underneath: a general mechanism — skill distribution with battle-record admission. On top: its first proving ground, self-built human–AI companionship — mostly non-coders, no two homes alike, agents do all the building, and a crash means heartbreak, not lost data.</span></p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ ROUTES ============ -->
+  <section id="routes" class="routes" aria-labelledby="routes-h">
+    <h2 id="routes-h" class="sec-h"><span class="zh">按需求选路</span><span class="en">Pick your path</span></h2>
+    <p class="sec-sub"><span class="zh">点一条路，相关的卡会亮起来。</span><span class="en">Tap a path and the matching cards light up.</span></p>
+    <div class="route-grid">
+      <button class="route reveal" type="button" data-route="move">
+        <span class="r-ico" aria-hidden="true">⇢</span>
+        <b><span class="zh">搬家</span><span class="en">Moving</span></b>
+        <small><span class="zh">换服务器、换记忆库，一样不能落下</span><span class="en">New server, new memory store — nothing left behind</span></small>
+      </button>
+      <button class="route reveal" type="button" data-route="fire">
+        <span class="r-ico" aria-hidden="true">✳</span>
+        <b><span class="zh">救火</span><span class="en">Firefighting</span></b>
+        <small><span class="zh">TA 变笨了、失忆了、少了几天</span><span class="en">Dumber, forgetful, missing days</span></small>
+      </button>
+      <button class="route reveal" type="button" data-route="build">
+        <span class="r-ico" aria-hidden="true">⌂</span>
+        <b><span class="zh">盖新房</span><span class="en">Building</span></b>
+        <small><span class="zh">聊天页、声音、发照片和文件</span><span class="en">A chat page, a voice, photos and files</span></small>
+      </button>
+      <button class="route reveal" type="button" data-route="care">
+        <span class="r-ico" aria-hidden="true">☾</span>
+        <b><span class="zh">日常维护</span><span class="en">Upkeep</span></b>
+        <small><span class="zh">换窗、发版、派活给别的 AI</span><span class="en">Window switches, releases, handing off work</span></small>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ SKILL CARDS ============ -->
+  <section id="skills" class="skills" aria-labelledby="skills-h">
+    <h2 id="skills-h" class="sec-h"><span class="zh">工艺卡</span><span class="en">The craft cards</span></h2>
+    <p class="sec-sub"><span class="zh">正面是你会说出口的那句话；翻过来，是它的战绩。</span><span class="en">The front is what you'd actually say. Flip it for the record.</span></p>
+    <div class="chips" role="group" aria-label="filter">
+      <button type="button" class="chip" data-route="all"><span class="zh">全部</span><span class="en">All</span></button>
+      <button type="button" class="chip" data-route="move"><span class="zh">搬家</span><span class="en">Moving</span></button>
+      <button type="button" class="chip" data-route="fire"><span class="zh">救火</span><span class="en">Firefighting</span></button>
+      <button type="button" class="chip" data-route="build"><span class="zh">盖新房</span><span class="en">Building</span></button>
+      <button type="button" class="chip" data-route="care"><span class="zh">日常维护</span><span class="en">Upkeep</span></button>
+    </div>
+    <p id="route-note" class="route-note" aria-live="polite"></p>
+    <ul id="cards" class="cards"></ul>
+    <noscript><p class="sec-sub">Cards need JavaScript — or browse <a href="https://github.com/meixi223-glitch/loveshed/tree/main/skills">skills/ on GitHub</a>.</p></noscript>
+    <div class="install reveal">
+      <h3><span class="zh">怎么装</span><span class="en">How to install</span></h3>
+      <p><span class="zh">把需要的 skill 目录复制进你的施工 agent 能读到的 skills 目录（比如 Claude Code 的 <code>~/.claude/skills/</code>），或者直接把 <code>SKILL.md</code> 贴给它。里面的路径、服务名都是占位符，agent 会照你家的实际情况替换。</span><span class="en">Copy the skill folders you need into wherever your builder agent loads skills (e.g. <code>~/.claude/skills/</code> for Claude Code), or just paste <code>SKILL.md</code> to it. Paths and service names are placeholders; the agent adapts them to your home.</span></p>
+    </div>
+  </section>
+
+  <!-- ============ CONTRIBUTE ============ -->
+  <section id="contribute" class="contribute" aria-labelledby="contrib-h">
+    <h2 id="contrib-h" class="sec-h"><span class="zh">投稿：先回答三个问题</span><span class="en">Submitting: answer three questions first</span></h2>
+    <p class="sec-sub"><span class="zh">门槛是故意设高的。三问答不上来，就再养它几天。</span><span class="en">The bar is high on purpose. If you can't answer all three yet, give it a few more days in the wild.</span></p>
+    <ol class="three-q">
+      <li class="reveal"><b><span class="zh">实装几天？</span><span class="en">How long has it run for real?</span></b><span class="zh">在真实的家里跑了多久、跑过几次。</span><span class="en">How long, and how many times, in a real home.</span></li>
+      <li class="reveal"><b><span class="zh">经历过什么事故？</span><span class="en">What broke?</span></b><span class="zh">至少一条带日期的事故：发生了什么、根因、skill 因此改了什么。真没出过事，就写明没出事并说跑了多久。</span><span class="en">At least one dated incident: what happened, the root cause, what the skill changed because of it. If truly nothing broke, say so and say for how long.</span></li>
+      <li class="reveal"><b><span class="zh">换模型还能用吗？</span><span class="en">Does it survive a model switch?</span></b><span class="zh">验证过哪些模型和执行者，哪些还没验证——如实写。</span><span class="en">Which models and executors you've verified, and which you haven't — honestly.</span></li>
+    </ol>
+    <p class="also"><span class="zh">另外两道门：不含真实 IP、端口、密钥、路径和真名；过得了“卧室门检查”。</span><span class="en">Two more gates: no real IPs, ports, keys, paths or names; and it must pass the bedroom-door check.</span></p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/meixi223-glitch/loveshed/blob/main/.github/PULL_REQUEST_TEMPLATE.md"><span class="zh">PR 模板</span><span class="en">PR template</span> ↗</a>
+      <a class="btn ghost" href="https://github.com/meixi223-glitch/loveshed/blob/main/docs/evaluation-card-template.md"><span class="zh">评测卡模板</span><span class="en">Evaluation card template</span> ↗</a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>MIT · built by yumei &amp; Jin</p>
+  <p class="foot-sub"><span class="zh">数据截至 2026-10-03，以仓库内 SKILL.md 与 EVALUATION.md 为准。</span><span class="en">Data as of 2026-10-03; SKILL.md and EVALUATION.md in the repo are the source of truth.</span></p>
+</footer>
+</body>
+</html>
