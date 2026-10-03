@@ -357,6 +357,36 @@
     writeList(MINE_KEY, list.slice(0, 200));
   }
 
+  /* media_links on published Q&A: pictures inline (lazy), everything else as an external-link chip */
+  var IMG_RE = /\.(png|jpe?g|webp|gif)$/i;
+  var MEDIA = { ext: { zh: "外部链接", en: "External link" }, contact: { zh: "联系", en: "contact" } };
+  function safeUrl(u) {
+    try { var x = new URL(u); return /^https?:$/.test(x.protocol) && x.hostname ? x : null; } catch (e) { return null; }
+  }
+  function mediaHtml(links) {
+    var out = (links || []).slice(0, 3).map(function (u) {
+      var x = safeUrl(u);
+      if (!x) return "";
+      var href = esc(x.href), a = '<a href="' + href + '" target="_blank" rel="noopener nofollow ugc noreferrer"';
+      if (IMG_RE.test(x.pathname)) {
+        return a + ' class="media-img" data-host="' + esc(x.hostname) + '"><img src="' + href + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>';
+      }
+      return a + ' class="media-ext"><span aria-hidden="true">↗</span> ' + bi(MEDIA.ext) + ' · <b>' + esc(x.hostname.replace(/^www\./, "")) + "</b></a>";
+    }).join("");
+    return out ? '<div class="media">' + out + "</div>" : "";
+  }
+  // a picture that fails to load turns into the plain external-link chip
+  document.addEventListener("error", function (e) {
+    var img = e.target;
+    if (!img || img.tagName !== "IMG" || !img.parentNode || !img.parentNode.classList.contains("media-img")) return;
+    var a = img.parentNode;
+    a.className = "media-ext";
+    a.innerHTML = '<span aria-hidden="true">↗</span> ' + bi(MEDIA.ext) + " · <b>" + esc(a.getAttribute("data-host").replace(/^www\./, "")) + "</b>";
+  }, true);
+  function contactHtml(c) {
+    return c ? ' · <span class="qa-contact">' + bi(MEDIA.contact) + " " + esc(c) + "</span>" : "";
+  }
+
   function loadQA() {
     return fetch("qa.json", { cache: "no-cache" }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
@@ -516,6 +546,7 @@
         okA:     { zh: "回答已进审核队列，通过后会挂在这个问题下面。谢谢你！", en: "Your answer is in the review queue and will appear under the question once approved. Thank you!" },
         needQ:   { zh: "问题和“具体情况”都要写一写。", en: "Please fill in both the question and what's going on." },
         needA:   { zh: "回答还空着呢。", en: "The answer is still empty." },
+        badLink: { zh: "这条链接不对：要以 http:// 或 https:// 开头的完整网址，不超过 500 字。", en: "That link doesn't work: use a full address starting with http:// or https://, up to 500 characters." },
         goneQ:   { zh: "这个问题暂时不能回答了（可能刚下架），回提问区刷新看看。", en: "That question can't take answers right now (maybe just removed) — check the Q&A board." },
         backQA:  { zh: "回提问区 →", en: "Back to Q&A →" }
       };
@@ -525,6 +556,8 @@
         question: ["title", "body", "contact"],
         answer:   ["question_id", "body", "contact"]
       };
+      ["tip", "amend", "question", "answer"].forEach(function (k) { TYPE_FIELDS[k].push("contact_visibility"); });
+      var LINK_INPUTS = ["link1", "link2", "link3"];
       var qaTitles = {};
       function fType() { return form.elements.type.value || "tip"; }
       function applyType() {
@@ -592,7 +625,7 @@
       function ghUrl(d) {
         if (d.type === "question" || d.type === "answer") {
           var title = d.type === "question" ? "[question] " + d.title : "[answer] " + (qaTitles[d.question_id] || d.question_id);
-          return REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(d.body.slice(0, 1500));
+          return REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(d.body.slice(0, 1500) + (d.media_links.length ? "\n\n" + d.media_links.join("\n") : ""));
         }
         var amend = d.type === "amend";
         var u = REPO + "/issues/new?template=" + (amend ? "tip-amend.yml" : "tip-submit.yml") +
@@ -622,13 +655,21 @@
           d[k] = (form.elements[k].value || "").trim();
         });
         form.querySelectorAll(".bad").forEach(function (el) { el.classList.remove("bad"); });
+        d.media_links = [];
+        for (var li = 0; li < LINK_INPUTS.length; li++) {
+          var el = form.elements[LINK_INPUTS[li]], v = (el.value || "").trim();
+          if (!v) continue;
+          if (v.length > 500 || !safeUrl(v) || /[\s<>"'`]/.test(v)) { el.classList.add("bad"); return say("err", MSG.badLink); }
+          if (d.media_links.indexOf(v) < 0) d.media_links.push(v);
+        }
+        if (!d.contact) d.contact_visibility = "private";
         if (t === "answer") {
           if (!d.body) { form.elements.body.classList.add("bad"); return say("err", MSG.needA); }
         } else if (!d.title || !d.body) {
           (!d.title ? form.elements.title : form.elements.body).classList.add("bad");
           return say("err", t === "question" ? MSG.needQ : MSG.need);
         }
-        var h = hash(t + "\n" + (d.skill || d.question_id || "") + "\n" + (d.title || "") + "\n" + d.body);
+        var h = hash(t + "\n" + (d.skill || d.question_id || "") + "\n" + (d.title || "") + "\n" + d.body + "\n" + d.media_links.join(" "));
         if (store("loveshed-tip-last-hash") === h) return say("err", MSG.dup);
         var last = +store("loveshed-tip-last-at") || 0;
         if (Date.now() - last < GAP_MS) return say("err", MSG.wait);
@@ -655,12 +696,16 @@
             if (t === "question") say("ok", MSG.okQ, null, "qa.html");
             else if (t === "answer") say("ok", MSG.okA, null, "qa.html#" + encodeURIComponent(d.question_id));
             else say("ok", MSG.ok);
-            ["title", "body", "duration", "pitfalls"].forEach(function (k) { form.elements[k].value = ""; });
+            ["title", "body", "duration", "pitfalls"].concat(LINK_INPUTS).forEach(function (k) { form.elements[k].value = ""; });
             bodyCount.textContent = "0 / 5000";
             return;
           }
           if (res.status === 429) return say("err", MSG.rate, ghUrl(d));
           if (res.status === 400 && res.j.field === "question_id") return say("err", MSG.goneQ, null, "qa.html");
+          if (res.status === 400 && res.j.field === "media_links") {
+            LINK_INPUTS.forEach(function (k) { if (form.elements[k].value.trim()) form.elements[k].classList.add("bad"); });
+            return say("err", MSG.badLink);
+          }
           if (res.status === 400 && res.j.field && form.elements[res.j.field]) {
             form.elements[res.j.field].classList.add("bad");
             return say("err", res.j.reason === "markup_not_allowed" ? MSG.markup : MSG.invalid);
@@ -700,18 +745,18 @@
         var as = q.answers || [], n = as.length, id = esc(q.id);
         var answers = as.map(function (a) {
           return '<li class="qa-a' + (a.role === "keeper" ? " keeper" : "") + '"><p class="qa-by">' + bi(a.role === "keeper" ? QA.keeper : QA.anon) +
-                 " · " + when(a.answered, a.answered_at) + "</p>" + para(a.body || "") + "</li>";
+                 contactHtml(a.contact) + " · " + when(a.answered, a.answered_at) + "</p>" + para(a.body || "") + mediaHtml(a.media_links) + "</li>";
         }).join("");
         return (
           '<li class="qa-q" id="' + id + '">' +
             starBtn("q", q.id, "fav-q") +
             '<h2 class="qa-h"><button type="button" class="qa-head" aria-expanded="false" aria-controls="d-' + id + '">' +
               '<span class="qa-title">' + esc(q.title) + "</span>" +
-              '<span class="qa-by">' + bi(QA.anon) + " · " + when(q.asked, q.asked_at) + "</span>" +
+              '<span class="qa-by">' + bi(QA.anon) + contactHtml(q.contact) + " · " + when(q.asked, q.asked_at) + "</span>" +
               '<span class="qa-badge' + (n ? "" : " zero") + '"><b>' + n + "</b><small>" + bi(n === 1 ? QA.ans1 : QA.ans) + "</small></span>" +
             "</button></h2>" +
             '<div class="qa-detail" id="d-' + id + '" hidden>' +
-              '<div class="qa-body">' + para(q.body || "") + "</div>" +
+              '<div class="qa-body">' + para(q.body || "") + "</div>" + mediaHtml(q.media_links) +
               (n ? '<ol class="qa-answers">' + answers + "</ol>" : '<p class="qa-none">' + bi(QA.noAns) + "</p>") +
               '<a class="btn ghost qa-reply" href="submit.html?type=answer&amp;question_id=' + encodeURIComponent(q.id) + '">' +
                 '<span aria-hidden="true">✎</span> ' + bi(QA.answer) + "</a>" +
