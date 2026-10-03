@@ -232,9 +232,10 @@
   function card(s, i) {
     var base = REPO + "/blob/main/skills/" + s.id + "/";
     return (
-      '<li class="card reveal" data-id="' + s.id + '" data-routes="' + s.routes.join(" ") + '" style="--i:' + i + '">' +
+      '<li class="card reveal" id="skill-' + s.id + '" data-id="' + s.id + '" data-routes="' + s.routes.join(" ") + '" style="--i:' + i + '">' +
         '<div class="card-inner">' +
           '<div class="face front" aria-hidden="false">' +
+            starBtn("skill", s.id) +
             '<p class="scene">' + bi(s.scene) + "</p>" +
             '<p class="what">' + bi(s.what) + "</p>" +
             '<div class="meta"><span class="pill">' + daysText(s) + '</span><code class="sid">' + esc(s.id) + "</code></div>" +
@@ -327,6 +328,35 @@
     return { zh: +m[2] + " 月 " + +m[3] + " 日" + (then.getFullYear() !== now.getFullYear() ? "（" + m[1] + "）" : ""), en: m[1] + "-" + m[2] + "-" + m[3] };
   }
 
+  /* ---------- "Mine": favourites + my submissions, this browser only (localStorage, never uploaded) ---------- */
+  var FAV_KEY = "loveshed-favs", MINE_KEY = "loveshed-mine";
+  function readList(k) {
+    try { var v = JSON.parse(localStorage.getItem(k) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function writeList(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function favKey(kind, id) { return kind + ":" + id; }
+  function isFav(kind, id) {
+    return readList(FAV_KEY).some(function (f) { return favKey(f.kind, f.id) === favKey(kind, id); });
+  }
+  // title: {zh, en} for craft cards, a plain string for questions
+  function setFav(kind, id, title, on) {
+    var list = readList(FAV_KEY).filter(function (f) { return favKey(f.kind, f.id) !== favKey(kind, id); });
+    if (on) list.unshift({ kind: kind, id: id, title: title, at: new Date().toISOString() });
+    writeList(FAV_KEY, list);
+  }
+  var FAV_LABEL = "收藏 / Save";
+  function starBtn(kind, id, extra) {
+    return '<button type="button" class="fav' + (extra ? " " + extra : "") + '" data-fav="' + kind + '" data-fav-id="' + esc(id) + '"' +
+           ' aria-pressed="' + isFav(kind, id) + '" aria-label="' + FAV_LABEL + '" title="' + FAV_LABEL + '">' +
+           '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3.8l2.4 5 5.4.6-4 3.7 1.1 5.4L12 15.8l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z" stroke-linejoin="round"/></svg></button>';
+  }
+  function paintStar(btn, on) { btn.setAttribute("aria-pressed", on ? "true" : "false"); }
+  function addMine(rec) {
+    var list = readList(MINE_KEY);
+    list.unshift(rec);
+    writeList(MINE_KEY, list.slice(0, 200));
+  }
+
   function loadQA() {
     return fetch("qa.json", { cache: "no-cache" }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
@@ -351,6 +381,7 @@
     initCards();
     initForm();
     initForum();
+    initMine();
 
     /* ---------- reveal ---------- */
     var els = document.querySelectorAll(".reveal");
@@ -372,6 +403,13 @@
       list.addEventListener("click", function (e) {
         var lb = e.target.closest("button[data-lens]");
         if (lb) { setLens(lb.closest(".card"), lb.getAttribute("data-lens")); return; }
+        var fv = e.target.closest("button[data-fav]");
+        if (fv) {
+          var sk = SKILLS.filter(function (x) { return x.id === fv.getAttribute("data-fav-id"); })[0];
+          var on = fv.getAttribute("aria-pressed") !== "true";
+          setFav("skill", sk.id, sk.scene, on); paintStar(fv, on);
+          return;
+        }
         var cp = e.target.closest(".copy");
         if (cp) { copyBrief(cp); return; }
         var btn = e.target.closest(".flip");
@@ -445,6 +483,13 @@
         ch.addEventListener("click", function () { pick(ch.getAttribute("data-scene")); });
       });
       pick(ROUTES.hasOwnProperty(P.scene) ? P.scene : "all", true);
+      // skills.html#skill-<id> (from "Mine"): show that card even if a filter would dim it
+      var target = location.hash && document.getElementById(location.hash.slice(1));
+      if (target && target.classList.contains("card")) {
+        if (target.classList.contains("dim")) pick("all");
+        target.classList.add("in", "hl");
+        setTimeout(function () { target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 200);
+      }
     }
 
     /* ---------- direct submission form (submit.html) ---------- */
@@ -601,6 +646,11 @@
           if (res.status === 201 && res.j.ok) {
             store("loveshed-tip-last-at", String(Date.now()));
             store("loveshed-tip-last-hash", h);
+            if (t === "question" || t === "answer") addMine({
+              type: t, at: new Date().toISOString(), title: d.title || "",
+              excerpt: d.body.slice(0, 140), question_id: d.question_id || "",
+              question_title: t === "answer" ? (qaTitles[d.question_id] || "") : ""
+            });
             form.classList.add("sent");
             if (t === "question") say("ok", MSG.okQ, null, "qa.html");
             else if (t === "answer") say("ok", MSG.okA, null, "qa.html#" + encodeURIComponent(d.question_id));
@@ -654,6 +704,7 @@
         }).join("");
         return (
           '<li class="qa-q" id="' + id + '">' +
+            starBtn("q", q.id, "fav-q") +
             '<h2 class="qa-h"><button type="button" class="qa-head" aria-expanded="false" aria-controls="d-' + id + '">' +
               '<span class="qa-title">' + esc(q.title) + "</span>" +
               '<span class="qa-by">' + bi(QA.anon) + " · " + when(q.asked, q.asked_at) + "</span>" +
@@ -689,9 +740,92 @@
         qaList.innerHTML = '<li class="qa-fail">' + bi(QA.fail) + "</li>";
       });
       qaList.addEventListener("click", function (e) {
+        var fv = e.target.closest("button[data-fav]");
+        if (fv) {
+          var li = fv.closest(".qa-q"), on = fv.getAttribute("aria-pressed") !== "true";
+          setFav("q", li.id, li.querySelector(".qa-title").textContent, on); paintStar(fv, on);
+          return;
+        }
         var b = e.target.closest(".qa-head");
         if (b) toggle(b.closest(".qa-q"));
       });
+    }
+
+    /* ---------- "Mine" (mine.html) ---------- */
+    function initMine() {
+      var favEl = document.getElementById("mine-favs");
+      if (!favEl) return;
+      var M = {
+        skill:   { zh: "工艺卡", en: "Craft card" },
+        q:       { zh: "问题", en: "Question" },
+        live:    { zh: "已上墙", en: "On the board" },
+        pending: { zh: "审核中，还没上墙", en: "In review — not on the board yet" },
+        unknown: { zh: "暂时查不到状态", en: "Status unavailable right now" },
+        checking:{ zh: "查询中…", en: "Checking…" },
+        re:      { zh: "回答：", en: "Re: " },
+        saved:   { zh: "收藏于 ", en: "saved " },
+        sent:    { zh: "投于 ", en: "sent " }
+      };
+      function when(iso) { return '<time datetime="' + esc(iso) + '">' + bi(ago(iso.slice(0, 10), iso)) + "</time>"; }
+      function count(k, n) { document.querySelector('.mine-n[data-n="' + k + '"]').textContent = n ? "· " + n : ""; }
+      function empty(k, n) { document.querySelector('[data-empty="' + k + '"]').hidden = n > 0; }
+      function title(t) { return typeof t === "string" ? esc(t) : bi(t || { zh: "", en: "" }); }
+
+      function renderFavs() {
+        var favs = readList(FAV_KEY);
+        favEl.innerHTML = favs.map(function (f) {
+          var href = f.kind === "skill" ? "skills.html#skill-" + encodeURIComponent(f.id) : "qa.html#" + encodeURIComponent(f.id);
+          return '<li class="mine-item">' +
+            '<a class="mine-link" href="' + href + '">' +
+              '<span class="mine-tag">' + bi(f.kind === "skill" ? M.skill : M.q) + "</span>" +
+              '<span class="mine-title">' + title(f.title) + "</span>" +
+              '<span class="mine-meta">' + bi(M.saved) + when(f.at || "") + "</span>" +
+            "</a>" + starBtn(f.kind, f.id) + "</li>";
+        }).join("");
+        count("favs", favs.length); empty("favs", favs.length);
+      }
+      favEl.addEventListener("click", function (e) {
+        var fv = e.target.closest("button[data-fav]");
+        if (!fv) return;
+        setFav(fv.getAttribute("data-fav"), fv.getAttribute("data-fav-id"), null, false);
+        renderFavs();
+      });
+      renderFavs();
+
+      var mine = readList(MINE_KEY);
+      function renderMine(qs, checking) {
+        var byId = {}, byTitle = {};
+        (qs || []).forEach(function (q) { byId[q.id] = q; byTitle[(q.title || "").trim()] = q; });
+        ["question", "answer"].forEach(function (type) {
+          var recs = mine.filter(function (r) { return r.type === type; });
+          document.getElementById("mine-" + type).innerHTML = recs.map(function (r) {
+            var href = "", state = checking ? "checking" : qs ? "pending" : "unknown";
+            if (type === "question") {
+              var hit = byTitle[(r.title || "").trim()];
+              if (hit) { href = "qa.html#" + encodeURIComponent(hit.id); state = "live"; }
+            } else {
+              var q = byId[r.question_id];
+              if (q) {
+                href = "qa.html#" + encodeURIComponent(q.id);
+                var ex = (r.excerpt || "").trim();
+                if (ex && (q.answers || []).some(function (a) { return (a.body || "").trim().indexOf(ex) === 0; })) state = "live";
+              }
+            }
+            var head = type === "question" ? esc(r.title)
+                     : bi(M.re) + esc(r.question_title || (byId[r.question_id] || {}).title || r.question_id);
+            var inner =
+              '<span class="mine-state ' + state + '">' + bi(M[state]) + "</span>" +
+              '<span class="mine-title">' + head + "</span>" +
+              '<span class="mine-ex">' + esc(r.excerpt || "") + "</span>" +
+              '<span class="mine-meta">' + bi(M.sent) + when(r.at || "") + "</span>";
+            return '<li class="mine-item">' + (href ? '<a class="mine-link" href="' + href + '">' + inner + "</a>"
+                                                    : '<div class="mine-link">' + inner + "</div>") + "</li>";
+          }).join("");
+          count(type, recs.length); empty(type, recs.length);
+        });
+      }
+      renderMine(null, mine.length > 0);
+      if (mine.length) loadQA().then(function (qs) { renderMine(qs); }, function () { renderMine(null); });
     }
   });
 })();

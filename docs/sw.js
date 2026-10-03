@@ -3,10 +3,10 @@
    Pages, scripts, styles and qa.json are network-first (revalidated every time), so a release
    is never hidden behind an old cache; the cache is only the offline fallback.
    Images are cache-first. Cross-origin requests (the submission inbox, GitHub) are never touched. */
-var VERSION = "2026-10-03-p9-pages";
+var VERSION = "2026-10-03-p10-tabbar-mine";
 var CACHE = "loveshed-" + VERSION;
 var PRECACHE = [
-  "./", "index.html", "skills.html", "qa.html", "submit.html", "style.css", "app.js", "qa.json", "manifest.webmanifest",
+  "./", "index.html", "skills.html", "qa.html", "submit.html", "mine.html", "style.css", "app.js", "qa.json", "manifest.webmanifest",
   "favicon.svg", "apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"
 ];
 var NETWORK_TIMEOUT_MS = 4000;
