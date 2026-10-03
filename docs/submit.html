@@ -92,9 +92,10 @@
         <small class="tf-hint tf-pub-hint"><span class="zh">公开后任何访客可见，建议留不怕公开的方式（如 GitHub / 小红书号）。</span><span class="en">Once public, any visitor can see it — use something you don't mind sharing (e.g. a GitHub or Xiaohongshu handle).</span></small>
       </div>
       <div class="tf-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
-      <p class="tf-note"><span class="zh">正文只收纯文字，不收 HTML；不能直接上传文件——图片和附件请先放到图床或网盘，再贴 http(s) 链接（最多 3 条）。</span><span class="en">Plain text only, no HTML; no file uploads — put pictures and attachments on an image host or cloud drive first, then paste up to 3 http(s) links.</span></p>
+      <p class="tf-note" data-types="answer"><span class="zh">回答仅限纯文字，无需审核，发布后立即可见。</span><span class="en">Answers are plain text only, need no review, and are visible right after you post.</span></p>
+      <p class="tf-note" data-types="tip amend question"><span class="zh">正文只收纯文字，不收 HTML；不能直接上传文件——图片和附件请先放到图床或网盘，再贴 http(s) 链接（最多 3 条）。</span><span class="en">Plain text only, no HTML; no file uploads — put pictures and attachments on an image host or cloud drive first, then paste up to 3 http(s) links.</span></p>
       <div class="cta">
-        <button class="btn primary" type="submit"><span class="zh">投进审核队列</span><span class="en">Send to review</span></button>
+        <button class="btn primary" type="submit"><span data-types="tip amend question"><span class="zh">投进审核队列</span><span class="en">Send to review</span></span><span data-types="answer"><span class="zh">直接发布</span><span class="en">Post now</span></span></button>
         <a class="btn ghost tf-gh" href="https://github.com/meixi223-glitch/loveshed/issues/new?template=tip-submit.yml"><span class="zh">用 GitHub 的走这边</span><span class="en">On GitHub? Use an issue</span> ↗</a>
       </div>
       <p class="tf-status" role="status" aria-live="polite"></p>
